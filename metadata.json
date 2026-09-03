@@ -1,0 +1,6 @@
+{
+  "name": "NOUR OS",
+  "description": "Personal operating system built for a six-month transformation in discipline, software engineering, and independence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
