@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNour } from '../context/NourContext';
 import { formatDateDisplay } from '../utils/defaults';
+import { SeasonAnalyticsChart } from './SeasonAnalyticsChart';
 import { 
   Calendar, 
   CheckCircle2, 
@@ -55,6 +56,14 @@ export const ProgressScreen: React.FC = () => {
 
   const completedOrMvdCount = past28Days.filter(d => d.status === 'completed' || d.status === 'mvd' || d.status === 'partial').length;
   const consistencyRate = Math.round((completedOrMvdCount / 28) * 100);
+
+  const zeroDaysAvoided = Object.keys(state.dayRecords).filter(k => {
+    const record = state.dayRecords[k];
+    const hasCompletions = (state.completions[k] || []).length > 0;
+    const hasDeepWork = allSessions.some(s => s.date === k);
+    const hasMission = state.missions[k]?.status === 'completed';
+    return record?.state === 'completed' || record?.state === 'minimum_viable' || hasCompletions || hasDeepWork || hasMission;
+  }).length;
 
   // Six-Month Chapters definition
   const months = [
@@ -161,10 +170,26 @@ export const ProgressScreen: React.FC = () => {
           </div>
           <div>
             <div className="text-[11px] font-mono text-zinc-400 uppercase">Zero Days Avoided</div>
-            <div className="text-lg font-mono font-bold text-emerald-400 mt-0.5">24 / 24</div>
+            <div className="text-lg font-mono font-bold text-emerald-400 mt-0.5">
+              {zeroDaysAvoided} / {Math.max(1, currentDay)}
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Six-Month Performance Trajectory & Recharts Visualizer */}
+      <SeasonAnalyticsChart
+        startDateStr={state.user.startDate}
+        currentDay={currentDay}
+        totalSeasonDays={totalDaysInSeason}
+        allSessions={allSessions}
+        missions={state.missions}
+        completions={state.completions}
+        completionVersions={state.completionVersions}
+        habits={state.habits}
+        dayRecords={state.dayRecords}
+        lifetimeXP={state.lifetimeXP}
+      />
 
       {/* 28-Day Consistency Matrix */}
       <div className="rounded-2xl bg-zinc-900/40 border border-zinc-800 p-6 space-y-4">

@@ -8,14 +8,19 @@ import {
   RotateCcw, 
   Settings, 
   ShieldAlert,
-  Sparkles
+  Sparkles,
+  Command,
+  Cloud,
+  CloudOff,
+  RefreshCw
 } from 'lucide-react';
 
 interface HeaderProps {
   onOpenSettings: () => void;
+  onOpenShortcuts?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenSettings }) => {
+export const Header: React.FC<HeaderProps> = ({ onOpenSettings, onOpenShortcuts }) => {
   const { 
     screen, 
     setScreen, 
@@ -25,17 +30,20 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSettings }) => {
     currentLevel, 
     todayDeepWorkMinutes, 
     smartDayState,
-    isMinimumViableDayActive
+    isMinimumViableDayActive,
+    currentUser,
+    syncStatus,
+    signInWithCloud
   } = useNour();
 
-  const navItems: { id: ScreenType; label: string }[] = [
-    { id: 'today', label: 'Today' },
-    { id: 'habits', label: 'Habits' },
-    { id: 'deep_work', label: 'Deep Work' },
-    { id: 'progress', label: 'Progress' },
-    { id: 'learning', label: 'Learning' },
-    { id: 'rewards', label: 'Rewards' },
-    { id: 'recovery', label: 'Recovery' },
+  const navItems: { id: ScreenType; label: string; shortcut: string }[] = [
+    { id: 'today', label: 'Today', shortcut: 'H' },
+    { id: 'habits', label: 'Habits', shortcut: 'B' },
+    { id: 'deep_work', label: 'Deep Work', shortcut: 'D' },
+    { id: 'progress', label: 'Progress', shortcut: 'P' },
+    { id: 'learning', label: 'Learning', shortcut: 'L' },
+    { id: 'rewards', label: 'Rewards', shortcut: 'R' },
+    { id: 'recovery', label: 'Recovery', shortcut: 'C' },
   ];
 
   const deepWorkHours = Math.floor(todayDeepWorkMinutes / 60);
@@ -90,6 +98,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSettings }) => {
             <button
               id="brand-logo-btn"
               onClick={() => setScreen('today')}
+              title="Nour OS - Today (Shortcut: H)"
               className="flex items-baseline gap-1.5 group cursor-pointer focus:outline-none"
             >
               <span className="font-accent-italic text-2xl md:text-3xl text-white italic font-normal tracking-tight group-hover:text-zinc-200 transition-colors">
@@ -116,13 +125,23 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSettings }) => {
                   key={item.id}
                   id={`nav-${item.id}-btn`}
                   onClick={() => setScreen(item.id)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-medium tracking-wide transition-all duration-200 ${
+                  title={`${item.label} (Press '${item.shortcut}')`}
+                  className={`group flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium tracking-wide transition-all duration-200 ${
                     isActive
                       ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
                       : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
                   }`}
                 >
-                  {item.label}
+                  <span>{item.label}</span>
+                  <kbd 
+                    className={`hidden xl:inline-block font-mono text-[9px] px-1 py-0.5 rounded leading-none transition-colors ${
+                      isActive
+                        ? 'bg-zinc-300/80 text-zinc-900 font-bold'
+                        : 'text-zinc-500 group-hover:text-zinc-300 bg-zinc-800/80'
+                    }`}
+                  >
+                    {item.shortcut}
+                  </kbd>
                 </button>
               );
             })}
@@ -134,7 +153,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSettings }) => {
             <button
               id="header-deepwork-shortcut-btn"
               onClick={() => setScreen('deep_work')}
-              title="Today's Deep Work"
+              title="Today's Deep Work (Shortcut: D)"
               className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 rounded-full text-xs font-mono text-zinc-300 transition-colors"
             >
               <Clock className="w-3.5 h-3.5 text-zinc-400" />
@@ -145,7 +164,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSettings }) => {
             <button
               id="header-xp-shortcut-btn"
               onClick={() => setScreen('rewards')}
-              title="Level and Available XP"
+              title="Level and Available XP (Shortcut: R)"
               className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 rounded-full text-xs font-mono text-zinc-200 transition-colors"
             >
               <Sparkles className="w-3 h-3 text-zinc-300" />
@@ -159,12 +178,72 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSettings }) => {
               {getSmartStateBadge()}
             </div>
 
+            {/* Keyboard Shortcuts Cheatsheet Toggle */}
+            {onOpenShortcuts && (
+              <button
+                id="header-shortcuts-btn"
+                onClick={onOpenShortcuts}
+                className="hidden sm:flex p-2 text-zinc-400 hover:text-white hover:bg-zinc-800/60 rounded-full transition-colors focus:outline-none"
+                title="Keyboard Shortcuts Cheatsheet (Shortcut: ?)"
+              >
+                <Command className="w-4 h-4" />
+              </button>
+            )}
+
+            {/* Cloud Persistence & Sync status button */}
+            {currentUser ? (
+              <button
+                id="header-cloud-sync-btn"
+                onClick={onOpenSettings}
+                title={
+                  syncStatus === 'synced'
+                    ? `Cloud Synced (${currentUser.email})`
+                    : syncStatus === 'syncing'
+                    ? 'Syncing with Firestore...'
+                    : syncStatus === 'offline'
+                    ? 'Offline - Local cache active'
+                    : 'Cloud sync active (Click for settings)'
+                }
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 rounded-full text-xs font-mono text-zinc-300 transition-colors cursor-pointer"
+              >
+                {syncStatus === 'syncing' ? (
+                  <RefreshCw className="w-3.5 h-3.5 text-sky-400 animate-spin" />
+                ) : syncStatus === 'offline' ? (
+                  <CloudOff className="w-3.5 h-3.5 text-amber-400" />
+                ) : syncStatus === 'error' ? (
+                  <Cloud className="w-3.5 h-3.5 text-rose-400" />
+                ) : (
+                  <Cloud className="w-3.5 h-3.5 text-emerald-400" />
+                )}
+                <span className="hidden sm:inline-block max-w-[90px] truncate text-[11px] text-zinc-300">
+                  {currentUser.displayName?.split(' ')[0] || currentUser.email?.split('@')[0] || 'Synced'}
+                </span>
+                <span 
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    syncStatus === 'synced' ? 'bg-emerald-400' :
+                    syncStatus === 'syncing' ? 'bg-sky-400 animate-pulse' :
+                    syncStatus === 'offline' ? 'bg-amber-400' : 'bg-rose-400'
+                  }`} 
+                />
+              </button>
+            ) : (
+              <button
+                id="header-cloud-signin-btn"
+                onClick={signInWithCloud}
+                title="Sign in with Google to sync across devices"
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 rounded-full text-xs font-mono text-zinc-400 hover:text-white transition-all cursor-pointer"
+              >
+                <Cloud className="w-3.5 h-3.5 text-zinc-400" />
+                <span className="hidden sm:inline-block text-[11px]">Sync Cloud</span>
+              </button>
+            )}
+
             {/* Settings button */}
             <button
               id="header-settings-btn"
               onClick={onOpenSettings}
               className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800/60 rounded-full transition-colors focus:outline-none"
-              title="Settings & System Data"
+              title="Settings & Backup (Shortcut: S)"
             >
               <Settings className="w-4 h-4" />
             </button>

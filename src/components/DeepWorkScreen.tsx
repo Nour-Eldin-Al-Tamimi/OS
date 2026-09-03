@@ -260,43 +260,49 @@ export const DeepWorkScreen: React.FC = () => {
           <span className="text-xs font-mono text-zinc-400">1 XP / min + bonuses</span>
         </div>
 
-        <div className="space-y-2">
-          {state.deepWorkSessions.slice(0, 10).map((session) => {
-            const hrs = Math.floor(session.durationMinutes / 60);
-            const mins = session.durationMinutes % 60;
-            return (
-              <div
-                key={session.id}
-                className="flex items-center justify-between p-4 rounded-xl bg-zinc-950/60 border border-zinc-800/80 hover:border-zinc-700 transition-colors"
-              >
-                <div className="space-y-1 min-w-0 pr-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-zinc-200 truncate">
-                      {session.focusArea}
-                    </span>
-                    <span className="text-xs font-mono text-zinc-400">
-                      &bull; {formatDateDisplay(session.date)}
-                    </span>
+        {state.deepWorkSessions.length === 0 ? (
+          <div className="p-8 text-center rounded-xl bg-zinc-950/40 border border-zinc-800/60 text-zinc-500 font-mono text-xs">
+            No focus sessions logged yet. Begin your first deep work block above.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {state.deepWorkSessions.slice(0, 10).map((session) => {
+              const hrs = Math.floor(session.durationMinutes / 60);
+              const mins = session.durationMinutes % 60;
+              return (
+                <div
+                  key={session.id}
+                  className="flex items-center justify-between p-4 rounded-xl bg-zinc-950/60 border border-zinc-800/80 hover:border-zinc-700 transition-colors"
+                >
+                  <div className="space-y-1 min-w-0 pr-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-zinc-200 truncate">
+                        {session.focusArea}
+                      </span>
+                      <span className="text-xs font-mono text-zinc-400">
+                        &bull; {formatDateDisplay(session.date)}
+                      </span>
+                    </div>
+                    {session.notes && (
+                      <p className="text-xs text-zinc-400 truncate">
+                        {session.notes}
+                      </p>
+                    )}
                   </div>
-                  {session.notes && (
-                    <p className="text-xs text-zinc-400 truncate">
-                      {session.notes}
-                    </p>
-                  )}
-                </div>
 
-                <div className="flex items-center gap-4 shrink-0 text-right">
-                  <div className="font-mono text-sm font-semibold text-white">
-                    {hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`}
-                  </div>
-                  <div className="text-xs font-mono text-zinc-400">
-                    +{session.xpEarned} XP
+                  <div className="flex items-center gap-4 shrink-0 text-right">
+                    <div className="font-mono text-sm font-semibold text-white">
+                      {hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`}
+                    </div>
+                    <div className="text-xs font-mono text-zinc-400">
+                      +{session.xpEarned} XP
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

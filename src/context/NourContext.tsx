@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useRef } from 'react';
+import { User, onAuthStateChanged } from 'firebase/auth';
 import { 
   NourOSState, 
   ScreenType, 
@@ -7,12 +8,30 @@ import {
   Mission, 
   DeepWorkSession, 
   Reward, 
-  LearningRoadmapItem,
-  FinancialProfile,
-  UserConfig,
-  RecoveryEvent
+  LearningRoadmapItem, 
+  FinancialProfile, 
+  UserConfig, 
+  RecoveryEvent,
+  DailyCheckIn,
+  MoodType,
+  DayRecord
 } from '../types';
-import { loadState, saveState, getTodayKey, generateDefaultState, getDayNumberInSeason } from '../utils/defaults';
+import { loadState, saveState, clearAllStorage, getTodayKey, generateDefaultState, getDayNumberInSeason } from '../utils/defaults';
+import { 
+  auth, 
+  signInWithGoogle, 
+  signOutUser, 
+  fetchRemoteState, 
+  saveRemoteState, 
+  subscribeToRemoteState 
+} from '../lib/firebase';
+import { 
+  createLocalBackupSnapshot, 
+  mergeLocalAndRemoteStates, 
+  getPreMigrationBackup 
+} from '../utils/migration';
+
+export type CloudSyncStatus = 'local_only' | 'syncing' | 'synced' | 'error' | 'offline';
 
 interface NourContextType {
   state: NourOSState;
@@ -21,6 +40,18 @@ interface NourContextType {
   todayKey: string;
   dayNumber: number;
   
+  // Cloud Authentication & Sync
+  currentUser: User | null;
+  isAuthLoading: boolean;
+  isCloudSyncing: boolean;
+  syncStatus: CloudSyncStatus;
+  syncError: string | null;
+  lastSyncedAt: Date | null;
+  signInWithCloud: () => Promise<void>;
+  signOutCloud: () => Promise<void>;
+  forceCloudSync: () => Promise<void>;
+  restorePreMigrationBackup: () => boolean;
+
   // Mission
   todayMission: Mission | null;
   saveTodayMission: (title: string, description?: string, category?: Mission['category']) => void;
@@ -70,6 +101,10 @@ interface NourContextType {
   importJSON: (data: string) => boolean;
   dismissOpening: () => void;
   
+  // Daily Check-In
+  todayCheckIn: DailyCheckIn | null;
+  saveDailyCheckIn: (checkIn: { mood: MoodType; energyLevel: number; keyWin: string }) => void;
+
   // Derived state
   smartDayState: SmartDayState;
   mentorPrompt: string;
@@ -83,10 +118,172 @@ export const NourProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [screen, setScreen] = useState<ScreenType>('today');
   const todayKey = getTodayKey();
 
-  // Keep state synchronized to localStorage
+  // Cloud Auth & Sync State
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isCloudSyncing, setIsCloudSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<CloudSyncStatus>('local_only');
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
+
+  // Refs to avoid circular updates and debounce writes
+  const isRemoteUpdateRef = useRef(false);
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const pendingSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Handle Firebase Auth and initial Cloud Migration / Sync
   useEffect(() => {
+    let unsubscribeSnapshot: (() => void) | null = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      setIsAuthLoading(false);
+      setCurrentUser(firebaseUser);
+
+      if (unsubscribeSnapshot) {
+        unsubscribeSnapshot();
+        unsubscribeSnapshot = null;
+      }
+
+      if (!firebaseUser) {
+        setSyncStatus('local_only');
+        setSyncError(null);
+        return;
+      }
+
+      // User signed in - begin safe sync and migration workflow
+      setSyncStatus('syncing');
+      setSyncError(null);
+
+      try {
+        // 1. Always create a local safety snapshot before interacting with cloud
+        createLocalBackupSnapshot('pre_cloud_sync');
+
+        // 2. Fetch remote document for this user
+        const remoteState = await fetchRemoteState(firebaseUser.uid);
+
+        if (!remoteState) {
+          // FIRST-TIME MIGRATION: User has no cloud record yet.
+          // Migrate existing local state to Firestore as initial baseline
+          console.log('[Cloud Sync] First-time login: Migrating local state to Firestore');
+          await saveRemoteState(firebaseUser.uid, stateRef.current);
+          setLastSyncedAt(new Date());
+          setSyncStatus('synced');
+        } else {
+          // CLOUD HAS RECORD: Safely merge local and remote states
+          console.log('[Cloud Sync] Existing user record found: Merging local and cloud states');
+          const mergedState = mergeLocalAndRemoteStates(stateRef.current, remoteState);
+          
+          isRemoteUpdateRef.current = true;
+          setState(mergedState);
+          saveState(mergedState);
+          await saveRemoteState(firebaseUser.uid, mergedState);
+          setLastSyncedAt(new Date());
+          setSyncStatus('synced');
+        }
+
+        // 3. Subscribe to real-time updates from other tabs or devices
+        unsubscribeSnapshot = subscribeToRemoteState(
+          firebaseUser.uid,
+          (incomingRemoteState) => {
+            if (isRemoteUpdateRef.current) {
+              isRemoteUpdateRef.current = false;
+              return;
+            }
+            console.log('[Cloud Sync] Incoming remote update received');
+            setState((currentLocal) => {
+              const merged = mergeLocalAndRemoteStates(currentLocal, incomingRemoteState);
+              saveState(merged);
+              return merged;
+            });
+            setLastSyncedAt(new Date());
+            setSyncStatus('synced');
+          },
+          (err) => {
+            console.error('[Cloud Sync] Listener error:', err);
+            setSyncStatus('error');
+            setSyncError(err.message);
+          }
+        );
+      } catch (err: any) {
+        console.error('[Cloud Sync] Initialization/migration error:', err);
+        setSyncStatus('error');
+        setSyncError(err?.message || 'Failed to sync with cloud');
+      }
+    });
+
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeSnapshot) unsubscribeSnapshot();
+    };
+  }, []);
+
+  // Save changes to localStorage immediately and debounce cloud writes
+  useEffect(() => {
+    // Immediate local persistence
     saveState(state);
-  }, [state]);
+
+    if (!currentUser) return;
+
+    // Debounce cloud write (650ms) to batch rapid UI actions (ticking habits, etc.)
+    if (pendingSaveTimeoutRef.current) {
+      clearTimeout(pendingSaveTimeoutRef.current);
+    }
+
+    setIsCloudSyncing(true);
+    pendingSaveTimeoutRef.current = setTimeout(async () => {
+      try {
+        await saveRemoteState(currentUser.uid, state);
+        setIsCloudSyncing(false);
+        setSyncStatus('synced');
+        setLastSyncedAt(new Date());
+        setSyncError(null);
+      } catch (err: any) {
+        console.error('[Cloud Sync] Failed to push state to Firestore:', err);
+        setIsCloudSyncing(false);
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          setSyncStatus('offline');
+        } else {
+          setSyncStatus('error');
+          setSyncError(err?.message || 'Sync error');
+        }
+      }
+    }, 650);
+
+    return () => {
+      if (pendingSaveTimeoutRef.current) {
+        clearTimeout(pendingSaveTimeoutRef.current);
+      }
+    };
+  }, [state, currentUser]);
+
+  // Network online/offline listener
+  useEffect(() => {
+    const handleOnline = () => {
+      if (currentUser) {
+        setSyncStatus('syncing');
+        saveRemoteState(currentUser.uid, stateRef.current)
+          .then(() => {
+            setSyncStatus('synced');
+            setLastSyncedAt(new Date());
+            setSyncError(null);
+          })
+          .catch(() => setSyncStatus('error'));
+      }
+    };
+    const handleOffline = () => {
+      if (currentUser) {
+        setSyncStatus('offline');
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [currentUser]);
 
   // Handle active deep work timer ticks
   useEffect(() => {
@@ -170,6 +367,10 @@ export const NourProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isMinimumViableDayActive = useMemo(() => {
     const record = state.dayRecords[todayKey];
     return record?.state === 'minimum_viable';
+  }, [state.dayRecords, todayKey]);
+
+  const todayCheckIn = useMemo(() => {
+    return state.dayRecords[todayKey]?.checkIn || null;
   }, [state.dayRecords, todayKey]);
 
   const activeHabits = useMemo(() => {
@@ -532,6 +733,39 @@ export const NourProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  // Daily Check-In (Mood, Energy, Key Win)
+  const saveDailyCheckIn = (checkInData: { mood: MoodType; energyLevel: number; keyWin: string }) => {
+    setState(prev => {
+      const existing = prev.dayRecords[todayKey] || { date: todayKey, state: 'in_progress' as SmartDayState };
+      const hadExistingCheckIn = Boolean(existing.checkIn && existing.checkIn.keyWin);
+      const xpBonus = hadExistingCheckIn ? 0 : 25;
+
+      const newCheckIn: DailyCheckIn = {
+        mood: checkInData.mood,
+        energyLevel: checkInData.energyLevel,
+        keyWin: checkInData.keyWin.trim(),
+        loggedAt: Date.now()
+      };
+
+      const updatedRecord: DayRecord = {
+        ...existing,
+        checkIn: newCheckIn,
+        mood: checkInData.mood,
+        energyLevel: checkInData.energyLevel,
+        keyWin: checkInData.keyWin.trim()
+      };
+
+      return {
+        ...prev,
+        dayRecords: {
+          ...prev.dayRecords,
+          [todayKey]: updatedRecord
+        },
+        lifetimeXP: prev.lifetimeXP + xpBonus
+      };
+    });
+  };
+
   // Rewards
   const redeemReward = (rewardId: string): boolean => {
     const reward = state.rewards.find(r => r.id === rewardId);
@@ -609,26 +843,93 @@ export const NourProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetAllData = () => {
+    createLocalBackupSnapshot('pre_reset');
+    clearAllStorage();
     const fresh = generateDefaultState();
     setState(fresh);
     saveState(fresh);
+    if (currentUser) {
+      saveRemoteState(currentUser.uid, fresh).catch(console.error);
+    }
   };
 
   const exportJSON = () => {
-    return JSON.stringify(state, null, 2);
+    return JSON.stringify({
+      _exportedAt: new Date().toISOString(),
+      _version: 2,
+      ...state
+    }, null, 2);
   };
 
   const importJSON = (jsonStr: string): boolean => {
     try {
       const parsed = JSON.parse(jsonStr);
-      if (parsed && parsed.user && parsed.habits) {
-        setState(parsed);
-        saveState(parsed);
+      // Strip metadata if present
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { _exportedAt, _version, _updatedAt, _schemaVersion, ...cleanState } = parsed;
+      if (cleanState && cleanState.user && cleanState.habits) {
+        createLocalBackupSnapshot('pre_json_import');
+        setState(cleanState as NourOSState);
+        saveState(cleanState as NourOSState);
+        if (currentUser) {
+          saveRemoteState(currentUser.uid, cleanState as NourOSState).catch(console.error);
+        }
         return true;
       }
       return false;
     } catch {
       return false;
+    }
+  };
+
+  const restorePreMigrationBackup = (): boolean => {
+    const backup = getPreMigrationBackup();
+    if (!backup) return false;
+    setState(backup);
+    saveState(backup);
+    if (currentUser) {
+      saveRemoteState(currentUser.uid, backup).catch(console.error);
+    }
+    return true;
+  };
+
+  const signInWithCloud = async () => {
+    try {
+      setSyncStatus('syncing');
+      setSyncError(null);
+      await signInWithGoogle();
+    } catch (err: unknown) {
+      console.error('Sign-in failed:', err);
+      setSyncStatus('error');
+      const msg = err instanceof Error ? err.message : 'Sign in failed';
+      setSyncError(msg);
+      throw err;
+    }
+  };
+
+  const signOutCloud = async () => {
+    try {
+      await signOutUser();
+      setCurrentUser(null);
+      setSyncStatus('local_only');
+    } catch (err: unknown) {
+      console.error('Sign-out failed:', err);
+      throw err;
+    }
+  };
+
+  const forceCloudSync = async () => {
+    if (!currentUser) return;
+    setSyncStatus('syncing');
+    try {
+      await saveRemoteState(currentUser.uid, state);
+      setSyncStatus('synced');
+      setLastSyncedAt(new Date());
+      setSyncError(null);
+    } catch (err: unknown) {
+      setSyncStatus('error');
+      const msg = err instanceof Error ? err.message : 'Force sync failed';
+      setSyncError(msg);
     }
   };
 
@@ -647,6 +948,16 @@ export const NourProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setScreen,
         todayKey,
         dayNumber,
+        currentUser,
+        isAuthLoading,
+        isCloudSyncing,
+        syncStatus,
+        syncError,
+        lastSyncedAt,
+        signInWithCloud,
+        signOutCloud,
+        forceCloudSync,
+        restorePreMigrationBackup,
         todayMission,
         saveTodayMission,
         setMissionStatus,
@@ -684,7 +995,9 @@ export const NourProvider: React.FC<{ children: React.ReactNode }> = ({ children
         dismissOpening,
         smartDayState,
         mentorPrompt,
-        completionRatePercent
+        completionRatePercent,
+        todayCheckIn,
+        saveDailyCheckIn
       }}
     >
       {children}

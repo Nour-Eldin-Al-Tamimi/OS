@@ -22,6 +22,7 @@ import {
   SlidersHorizontal
 } from 'lucide-react';
 import { Habit } from '../types';
+import { DailyCheckInCard } from './DailyCheckInCard';
 
 export const TodayScreen: React.FC = () => {
   const { 
@@ -558,7 +559,10 @@ export const TodayScreen: React.FC = () => {
         </div>
       </section>
 
-      {/* 6. STATUS STRIP (XP, STREAK, DEEP WORK, COMPOSITE) */}
+      {/* 6. DAILY CHECK-IN (MOOD, ENERGY LEVEL, KEY WIN) */}
+      <DailyCheckInCard />
+
+      {/* 7. STATUS STRIP (XP, STREAK, DEEP WORK, COMPOSITE) */}
       <section id="section-status-strip" className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-zinc-800/80">
         <div className="p-4 rounded-xl bg-zinc-900/30 border border-zinc-800/70">
           <div className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">Level & Bank</div>

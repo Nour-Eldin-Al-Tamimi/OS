@@ -71,6 +71,15 @@ export interface ActiveDeepWork {
   focusArea: string;
 }
 
+export type MoodType = 'great' | 'good' | 'neutral' | 'low' | 'drained';
+
+export interface DailyCheckIn {
+  mood: MoodType;
+  energyLevel: number; // 1 to 5
+  keyWin: string;
+  loggedAt?: number;
+}
+
 export interface DayRecord {
   date: string;
   state: SmartDayState;
@@ -79,6 +88,10 @@ export interface DayRecord {
   distractionLevel?: 'clean' | 'moderate' | 'slipped';
   sleepHours?: number;
   workoutDone?: boolean;
+  checkIn?: DailyCheckIn;
+  mood?: MoodType;
+  energyLevel?: number;
+  keyWin?: string;
 }
 
 export interface Reward {
