@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { NourProvider, useNour } from './context/NourContext';
 import { AmbientBackground } from './components/AmbientBackground';
-import { BrandOpening } from './components/BrandOpening';
-import { Header } from './components/Header';
+import { MacSidebar } from './components/MacSidebar';
+import { MacTopBar } from './components/MacTopBar';
 import { TodayScreen } from './components/TodayScreen';
 import { DeepWorkScreen } from './components/DeepWorkScreen';
 import { HabitsScreen } from './components/HabitsScreen';
@@ -12,97 +11,68 @@ import { LearningScreen } from './components/LearningScreen';
 import { FinanceRewardsScreen } from './components/FinanceRewardsScreen';
 import { RecoveryScreen } from './components/RecoveryScreen';
 import { SettingsModal } from './components/SettingsModal';
-import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
-import { useGlobalShortcuts } from './hooks/useGlobalShortcuts';
+import { TimerToastBanner } from './components/TimerToastBanner';
 
 const AppContent: React.FC = () => {
-  const { state, screen, setScreen, dismissOpening } = useNour();
+  const { screen } = useNour();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
-
-  // Global Keyboard Shortcuts Hook
-  const { toast } = useGlobalShortcuts({
-    currentScreen: screen,
-    onNavigate: setScreen,
-    isSettingsOpen,
-    setIsSettingsOpen,
-    isShortcutsOpen,
-    setIsShortcutsOpen
-  });
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   return (
-    <div className="relative min-h-screen flex flex-col bg-[#070708] text-zinc-100 font-sans-ui selection:bg-zinc-800 selection:text-white">
-      {/* Brand opening sequence if not yet dismissed */}
-      {!state.hasSeenOpening && (
-        <BrandOpening onDismiss={dismissOpening} />
-      )}
-
-      {/* Subtle architectural ambient background */}
+    <div className="relative min-h-screen flex bg-[#fbfbfa] text-[#1d1d1f] font-sans antialiased selection:bg-[#1d1d1f] selection:text-white">
+      {/* Ambient background illumination */}
       <AmbientBackground />
 
-      {/* Main OS Top Navigation & Status Bar */}
-      <Header 
-        onOpenSettings={() => setIsSettingsOpen(true)} 
-        onOpenShortcuts={() => setIsShortcutsOpen(true)} 
+      {/* macOS-style Sidebar Navigation */}
+      <MacSidebar 
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        isOpenMobile={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
 
-      {/* Dynamic Screen Viewport */}
-      <main className="relative z-10 flex-1 pb-16">
-        {screen === 'today' && <TodayScreen />}
-        {screen === 'habits' && <HabitsScreen />}
-        {screen === 'deep_work' && <DeepWorkScreen />}
-        {screen === 'progress' && <ProgressScreen />}
-        {screen === 'learning' && <LearningScreen />}
-        {screen === 'rewards' && <FinanceRewardsScreen />}
-        {screen === 'recovery' && <RecoveryScreen />}
-      </main>
+      {/* Mobile Sidebar Overlay */}
+      {isMobileSidebarOpen && (
+        <div 
+          onClick={() => setIsMobileSidebarOpen(false)}
+          className="fixed inset-0 z-30 bg-black/20 backdrop-blur-xs md:hidden"
+          aria-hidden="true"
+        />
+      )}
 
-      {/* Global Minimalist Footer */}
-      <footer className="relative z-10 border-t border-zinc-900 bg-[#070708]/80 py-6 text-center text-xs font-mono text-zinc-400">
-        <div className="max-w-4xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="font-accent-italic text-lg text-white font-normal">Nour</span>
-            <span className="font-serif-display font-bold text-zinc-400">OS</span>
-            <span className="text-zinc-700">&bull;</span>
-            <span>Season 01 // Chapter 01</span>
+      {/* Main Content Area (offset by sidebar width on desktop) */}
+      <div className="flex-1 flex flex-col min-w-0 md:pl-64">
+        {/* macOS Top Bar */}
+        <MacTopBar 
+          onToggleSidebarMobile={() => setIsMobileSidebarOpen(prev => !prev)}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+        />
+
+        {/* Dynamic Screen Viewport */}
+        <main className="relative z-10 flex-1 pb-16">
+          {screen === 'today' && <TodayScreen />}
+          {screen === 'habits' && <HabitsScreen />}
+          {screen === 'deep_work' && <DeepWorkScreen />}
+          {screen === 'progress' && <ProgressScreen />}
+          {screen === 'learning' && <LearningScreen />}
+          {screen === 'rewards' && <FinanceRewardsScreen />}
+          {screen === 'recovery' && <RecoveryScreen />}
+        </main>
+
+        {/* Minimalist Sub-Footer */}
+        <footer className="relative z-10 border-t border-black/[0.05] py-5 text-center text-xs text-[#86868b]">
+          <div className="max-w-4xl mx-auto px-4 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-[#1d1d1f]">6-Months System</span>
+              <span className="text-black/20">&bull;</span>
+              <span>Win the day, don't perfect the day</span>
+            </div>
+
+            <div className="text-[11px] text-[#86868b]">
+              Personal Operating System
+            </div>
           </div>
-
-          <div className="flex items-center gap-4 text-[11px] tracking-wider text-zinc-400">
-            <span className="uppercase">Simple outside &bull; Powerful inside</span>
-            <span className="text-zinc-700">&bull;</span>
-            <button
-              id="footer-shortcuts-trigger-btn"
-              onClick={() => setIsShortcutsOpen(true)}
-              className="hover:text-zinc-200 transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <span>Shortcuts</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700 font-mono text-[10px] text-zinc-300">
-                ?
-              </kbd>
-            </button>
-          </div>
-        </div>
-      </footer>
-
-      {/* Keyboard Navigation Feedback Pill Toast */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: 16, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.95 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2 rounded-full bg-zinc-900/95 border border-zinc-700/90 text-xs font-mono text-zinc-200 shadow-2xl backdrop-blur-md pointer-events-none"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-            <span className="text-zinc-400">Jumped to:</span>
-            <span className="text-white font-semibold">{toast.message}</span>
-            <kbd className="px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-600 font-mono text-[10px] font-bold text-emerald-400">
-              {toast.keyLabel}
-            </kbd>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        </footer>
+      </div>
 
       {/* Settings Modal */}
       <SettingsModal 
@@ -110,13 +80,8 @@ const AppContent: React.FC = () => {
         onClose={() => setIsSettingsOpen(false)} 
       />
 
-      {/* Keyboard Shortcuts Cheatsheet Modal */}
-      <KeyboardShortcutsModal
-        isOpen={isShortcutsOpen}
-        onClose={() => setIsShortcutsOpen(false)}
-        onNavigate={setScreen}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-      />
+      {/* Lightweight Timer Log Toast Banner */}
+      <TimerToastBanner />
     </div>
   );
 };

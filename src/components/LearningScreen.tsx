@@ -8,10 +8,9 @@ import {
   Cpu, 
   FolderGit2, 
   Plus, 
-  CheckCircle2, 
-  Clock, 
   ArrowUpRight,
-  BookOpen
+  BookOpen,
+  X
 } from 'lucide-react';
 
 export const LearningScreen: React.FC = () => {
@@ -68,17 +67,17 @@ export const LearningScreen: React.FC = () => {
   const getTrackIcon = (t: LearningRoadmapItem['track']) => {
     switch (t) {
       case 'cs_fundamentals':
-        return <Terminal className="w-5 h-5 text-zinc-300" />;
+        return <Terminal className="w-4 h-4 text-[#1d1d1f]" />;
       case 'python_mastery':
-        return <Code className="w-5 h-5 text-zinc-300" />;
+        return <Code className="w-4 h-4 text-[#1d1d1f]" />;
       case 'backend_systems':
-        return <Database className="w-5 h-5 text-zinc-300" />;
+        return <Database className="w-4 h-4 text-[#1d1d1f]" />;
       case 'ai_engineering':
-        return <Cpu className="w-5 h-5 text-zinc-300" />;
+        return <Cpu className="w-4 h-4 text-[#1d1d1f]" />;
       case 'production_projects':
-        return <FolderGit2 className="w-5 h-5 text-zinc-300" />;
+        return <FolderGit2 className="w-4 h-4 text-[#1d1d1f]" />;
       default:
-        return <BookOpen className="w-5 h-5 text-zinc-300" />;
+        return <BookOpen className="w-4 h-4 text-[#1d1d1f]" />;
     }
   };
 
@@ -87,61 +86,67 @@ export const LearningScreen: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-black/[0.06] pb-4">
         <div>
-          <div className="text-xs font-mono text-zinc-400 uppercase tracking-widest">
+          <div className="text-[11px] font-medium text-[#86868b] uppercase tracking-wider">
             Technical Architecture
           </div>
-          <h1 className="text-2xl sm:text-3xl font-serif-display font-semibold tracking-wide text-white mt-1">
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#1d1d1f] mt-1">
             Software Engineering & AI Roadmap
           </h1>
-          <p className="text-xs font-mono text-zinc-400 mt-1">
-            "Know what I'm learning and keep moving." Total technical investment: {totalLearningHours} hours.
+          <p className="text-xs text-[#6e6e73] mt-1.5">
+            Know what you are learning and keep moving. Total technical investment: <strong className="font-tabular-nums text-[#1d1d1f]">{totalLearningHours}h</strong>.
           </p>
         </div>
 
         <button
           id="add-learning-track-btn"
           onClick={openCreateModal}
-          className="flex items-center gap-2 px-4 py-2.5 bg-zinc-100 hover:bg-white text-zinc-950 font-medium text-xs font-mono rounded-xl tracking-wide uppercase transition-all shadow"
+          className="apple-button-primary flex items-center gap-2 px-4 py-2.5 text-xs font-medium self-start sm:self-auto"
         >
-          <Plus className="w-3.5 h-3.5 stroke-[3]" />
-          <span>Add Roadmap Item</span>
+          <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+          <span>Add Module</span>
         </button>
       </div>
 
       {/* Active Focus Card */}
-      <div className="rounded-2xl bg-zinc-950 border border-zinc-700/80 p-6 sm:p-8 subtle-glow">
-        <div className="flex items-center justify-between gap-4 mb-4">
-          <span className="text-xs font-mono text-zinc-400 uppercase tracking-widest">
-            CURRENT LEARNING PRIORITY
+      <div className="apple-card p-6 sm:p-8 space-y-4">
+        <div className="flex items-center justify-between gap-4">
+          <span className="text-[11px] font-medium text-[#86868b] uppercase tracking-wider">
+            CURRENT PRIORITY
           </span>
-          <span className="px-2.5 py-0.5 rounded text-[11px] font-mono bg-zinc-800 text-zinc-300 border border-zinc-700">
-            IN ACTIVE ROTATION
+          <span className="px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-black/[0.05] text-[#1d1d1f]">
+            ACTIVE ROTATION
           </span>
         </div>
 
-        <h2 className="text-xl sm:text-2xl font-medium text-white tracking-tight">
-          CS50: Memory Management, Pointers & System Architecture
-        </h2>
-        <p className="text-xs font-mono text-zinc-400 mt-2">
-          Milestone: Week 4 memory allocation, pointer arithmetic in C, Valgrind leak tests.
-        </p>
+        <div>
+          <h2 className="text-xl sm:text-2xl font-semibold text-[#1d1d1f] tracking-tight">
+            CS50: Memory Management, Pointers & System Architecture
+          </h2>
+          <p className="text-xs text-[#6e6e73] mt-1.5">
+            Milestone: Week 4 memory allocation, pointer arithmetic in C, Valgrind leak tests.
+          </p>
+        </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-4 pt-6 mt-6 border-t border-zinc-800">
+        <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-black/[0.06]">
           <div className="flex items-center gap-3">
-            <span className="text-xs font-mono text-zinc-400">48 / 70 Hours Completed</span>
-            <div className="w-32 h-2 rounded-full bg-zinc-900 border border-zinc-800 overflow-hidden">
-              <div className="h-full bg-white" style={{ width: '68%' }} />
+            <span className="text-xs font-tabular-nums text-[#86868b]">48 / 70 Hours Completed</span>
+            <div className="w-32 h-2 rounded-full bg-black/[0.06] overflow-hidden">
+              <div className="h-full bg-[#1d1d1f] rounded-full" style={{ width: '68%' }} />
             </div>
           </div>
 
           <button
             onClick={() => {
-              startDeepWork('CS50 Pointers & Memory Execution');
+              startDeepWork({
+                focusArea: 'CS50 Pointers & Memory Execution',
+                area: 'Learning',
+                category: 'CS50'
+              });
               setScreen('deep_work');
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-zinc-100 hover:bg-white text-zinc-950 font-medium text-xs font-mono rounded-lg transition-all"
+            className="apple-button-secondary flex items-center gap-2 px-4 py-2 text-xs font-medium"
           >
             <span>Launch Study Session</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -150,28 +155,28 @@ export const LearningScreen: React.FC = () => {
       </div>
 
       {/* Roadmap Items List */}
-      <div className="space-y-4">
-        <h3 className="text-xs font-mono tracking-widest text-zinc-400 uppercase">
+      <div className="space-y-3">
+        <h3 className="text-xs font-semibold text-[#1d1d1f] uppercase tracking-wider">
           Roadmap Modules ({state.learningItems.length})
         </h3>
 
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {state.learningItems.map((item) => {
             const percent = Math.min(100, Math.round((item.hoursInvested / item.totalEstimatedHours) * 100));
 
             return (
               <div
                 key={item.id}
-                className="rounded-xl bg-zinc-900/40 border border-zinc-800 p-5 space-y-4 hover:border-zinc-700 transition-colors"
+                className="apple-card p-5 space-y-3.5"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-3.5">
-                    <div className="p-2.5 rounded-lg bg-zinc-950 border border-zinc-800 shrink-0 mt-0.5">
+                    <div className="p-2.5 rounded-xl bg-black/[0.03] text-[#1d1d1f] shrink-0 mt-0.5">
                       {getTrackIcon(item.track)}
                     </div>
                     <div>
-                      <h4 className="text-base font-medium text-white">{item.title}</h4>
-                      <p className="text-xs text-zinc-400 mt-1 font-mono">
+                      <h4 className="text-sm font-semibold text-[#1d1d1f]">{item.title}</h4>
+                      <p className="text-xs text-[#86868b] mt-0.5">
                         Current: {item.currentMilestone}
                       </p>
                     </div>
@@ -180,7 +185,7 @@ export const LearningScreen: React.FC = () => {
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => openEditModal(item)}
-                      className="text-xs font-mono text-zinc-400 hover:text-white px-2.5 py-1 rounded bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-colors"
+                      className="text-xs font-medium text-[#6e6e73] hover:text-[#1d1d1f] px-3 py-1.5 rounded-lg bg-black/[0.03] hover:bg-black/[0.06] transition-colors"
                     >
                       Update
                     </button>
@@ -189,13 +194,13 @@ export const LearningScreen: React.FC = () => {
 
                 {/* Progress bar & hours */}
                 <div className="space-y-1.5 pt-1">
-                  <div className="flex items-center justify-between text-xs font-mono text-zinc-400">
+                  <div className="flex items-center justify-between text-xs font-tabular-nums text-[#86868b]">
                     <span>{item.hoursInvested} / {item.totalEstimatedHours} hours</span>
                     <span>{percent}%</span>
                   </div>
-                  <div className="w-full h-1.5 rounded-full bg-zinc-950 border border-zinc-800/80 overflow-hidden">
+                  <div className="w-full h-1.5 rounded-full bg-black/[0.05] overflow-hidden">
                     <div 
-                      className="h-full bg-white transition-all duration-300"
+                      className="h-full bg-[#1d1d1f] rounded-full transition-all duration-300"
                       style={{ width: `${percent}%` }}
                     />
                   </div>
@@ -208,15 +213,23 @@ export const LearningScreen: React.FC = () => {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-2xl bg-zinc-950 border border-zinc-700 p-6 space-y-4 subtle-glow">
-            <h3 className="text-lg font-medium text-white border-b border-zinc-800 pb-3">
-              {editingItem ? 'Update Roadmap Module' : 'Add Roadmap Module'}
-            </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl bg-white border border-black/10 p-6 sm:p-7 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-black/[0.06] pb-3">
+              <h3 className="text-lg font-semibold text-[#1d1d1f]">
+                {editingItem ? 'Update Roadmap Module' : 'Add Roadmap Module'}
+              </h3>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-[#86868b] hover:text-[#1d1d1f] p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
             <form onSubmit={handleSave} className="space-y-4">
               <div>
-                <label className="block text-xs font-mono text-zinc-400 uppercase mb-1">
+                <label className="block text-xs font-medium text-[#6e6e73] mb-1">
                   Course or Project Title
                 </label>
                 <input
@@ -225,18 +238,18 @@ export const LearningScreen: React.FC = () => {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Distributed Systems & Docker Deployment"
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-zinc-500"
+                  className="w-full bg-black/[0.02] border border-black/[0.08] rounded-xl px-4 py-2.5 text-xs text-[#1d1d1f] focus:outline-none focus:border-black/30 focus:bg-white"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-mono text-zinc-400 uppercase mb-1">
+                <label className="block text-xs font-medium text-[#6e6e73] mb-1">
                   Technical Track
                 </label>
                 <select
                   value={track}
                   onChange={(e) => setTrack(e.target.value as any)}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                  className="w-full bg-black/[0.02] border border-black/[0.08] rounded-xl px-3 py-2 text-xs text-[#1d1d1f] focus:outline-none"
                 >
                   <option value="cs_fundamentals">CS Fundamentals (Algorithms & Memory)</option>
                   <option value="python_mastery">Python Mastery (OOP & Async)</option>
@@ -247,7 +260,7 @@ export const LearningScreen: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-mono text-zinc-400 uppercase mb-1">
+                <label className="block text-xs font-medium text-[#6e6e73] mb-1">
                   Current Milestone / Deliverable
                 </label>
                 <input
@@ -255,13 +268,13 @@ export const LearningScreen: React.FC = () => {
                   value={currentMilestone}
                   onChange={(e) => setCurrentMilestone(e.target.value)}
                   placeholder="e.g. Completing Section 3 test suite"
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-zinc-500"
+                  className="w-full bg-black/[0.02] border border-black/[0.08] rounded-xl px-4 py-2.5 text-xs text-[#1d1d1f] focus:outline-none focus:border-black/30 focus:bg-white"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-mono text-zinc-400 uppercase mb-1">
+                  <label className="block text-xs font-medium text-[#6e6e73] mb-1">
                     Hours Invested
                   </label>
                   <input
@@ -269,12 +282,12 @@ export const LearningScreen: React.FC = () => {
                     min="0"
                     value={hoursInvested}
                     onChange={(e) => setHoursInvested(Number(e.target.value))}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none"
+                    className="w-full bg-black/[0.02] border border-black/[0.08] rounded-xl px-3 py-2 text-xs text-[#1d1d1f] focus:outline-none font-tabular-nums"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-mono text-zinc-400 uppercase mb-1">
+                  <label className="block text-xs font-medium text-[#6e6e73] mb-1">
                     Target Total Hours
                   </label>
                   <input
@@ -282,22 +295,22 @@ export const LearningScreen: React.FC = () => {
                     min="5"
                     value={totalEstimatedHours}
                     onChange={(e) => setTotalEstimatedHours(Number(e.target.value))}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none"
+                    className="w-full bg-black/[0.02] border border-black/[0.08] rounded-xl px-3 py-2 text-xs text-[#1d1d1f] focus:outline-none font-tabular-nums"
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-zinc-800">
+              <div className="flex justify-end gap-3 pt-3 border-t border-black/[0.06]">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-xs font-mono text-zinc-400 hover:text-white rounded-lg"
+                  className="px-4 py-2 text-xs font-medium text-[#86868b] hover:text-[#1d1d1f] rounded-lg"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-zinc-100 hover:bg-white text-zinc-950 font-medium text-xs font-mono rounded-lg transition-all"
+                  className="apple-button-primary px-5 py-2 text-xs font-medium"
                 >
                   Save Module
                 </button>

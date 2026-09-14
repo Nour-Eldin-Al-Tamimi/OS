@@ -1,26 +1,18 @@
 import React, { useState } from 'react';
 import { useNour } from '../context/NourContext';
 import { Reward } from '../types';
-import { formatDateDisplay } from '../utils/defaults';
 import { 
-  DollarSign, 
   Sparkles, 
   Plus, 
-  Gift, 
   CheckCircle2, 
-  TrendingUp, 
-  Clock, 
-  Coins, 
-  ShieldCheck, 
   Trash2, 
-  Edit2 
+  X
 } from 'lucide-react';
 
 export const FinanceRewardsScreen: React.FC = () => {
   const { 
     state, 
     availableXP, 
-    currentLevel, 
     redeemReward, 
     saveReward, 
     deleteReward, 
@@ -98,66 +90,66 @@ export const FinanceRewardsScreen: React.FC = () => {
   const incomePercent = Math.min(100, Math.round((state.finance.currentMonthIncome / state.finance.monthlyTarget) * 100));
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
       {/* 1. FINANCIAL INDEPENDENCE TRACKER */}
-      <section className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800 pb-4">
+      <section className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-black/[0.06] pb-4">
           <div>
-            <div className="text-xs font-mono text-zinc-400 uppercase tracking-widest">
+            <div className="text-[11px] font-medium text-[#86868b] uppercase tracking-wider">
               Financial Sovereignty
             </div>
-            <h1 className="text-2xl sm:text-3xl font-serif-display font-semibold tracking-wide text-white mt-1">
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#1d1d1f] mt-1">
               Independence Target
             </h1>
-            <p className="text-xs font-mono text-zinc-400 mt-1">
-              "Gradually reduce financial dependence and cover personal expenses from software skills."
+            <p className="text-xs text-[#6e6e73] mt-1">
+              Gradually reduce financial dependence and cover personal expenses from software skills.
             </p>
           </div>
 
           <button
             onClick={() => setIsFinanceModalOpen(true)}
-            className="text-xs font-mono text-zinc-400 hover:text-white px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-colors"
+            className="apple-button-secondary text-xs font-medium px-3.5 py-1.5 self-start sm:self-auto"
           >
             Update Metrics
           </button>
         </div>
 
-        <div className="rounded-2xl bg-zinc-950 border border-zinc-800 p-6 sm:p-8 subtle-glow space-y-6">
+        <div className="apple-card p-6 sm:p-8 space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div>
-              <span className="text-xs font-mono text-zinc-400 uppercase">Monthly Income Target</span>
-              <div className="text-2xl font-bold font-mono text-white mt-1">
-                ${state.finance.monthlyTarget.toLocaleString()} <span className="text-xs font-normal text-zinc-400">/ mo</span>
+              <span className="text-[11px] font-medium uppercase text-[#86868b]">Monthly Target</span>
+              <div className="text-2xl font-semibold font-tabular-nums text-[#1d1d1f] mt-1">
+                ${state.finance.monthlyTarget.toLocaleString()} <span className="text-xs text-[#86868b] font-normal">/ mo</span>
               </div>
-              <p className="text-[11px] font-mono text-zinc-400 mt-1">Basic living expenses</p>
+              <p className="text-xs text-[#86868b] mt-1">Basic living expenses</p>
             </div>
 
             <div>
-              <span className="text-xs font-mono text-zinc-400 uppercase">Current Month Earned</span>
-              <div className="text-2xl font-bold font-mono text-white mt-1">
+              <span className="text-[11px] font-medium uppercase text-[#86868b]">Current Month Earned</span>
+              <div className="text-2xl font-semibold font-tabular-nums text-[#1d1d1f] mt-1">
                 ${state.finance.currentMonthIncome.toLocaleString()}
               </div>
-              <p className="text-[11px] font-mono text-zinc-400 mt-1">{incomePercent}% of monthly goal</p>
+              <p className="text-xs text-[#86868b] mt-1">{incomePercent}% of monthly goal</p>
             </div>
 
             <div>
-              <span className="text-xs font-mono text-zinc-400 uppercase">Cash Reserve / Savings</span>
-              <div className="text-2xl font-bold font-mono text-white mt-1">
+              <span className="text-[11px] font-medium uppercase text-[#86868b]">Cash Reserve / Runway</span>
+              <div className="text-2xl font-semibold font-tabular-nums text-[#1d1d1f] mt-1">
                 ${state.finance.savingsTotal.toLocaleString()}
               </div>
-              <p className="text-[11px] font-mono text-zinc-400 mt-1">Emergency student buffer</p>
+              <p className="text-xs text-[#86868b] mt-1">Student buffer</p>
             </div>
           </div>
 
           {/* Progress towards independence */}
-          <div className="space-y-2 pt-4 border-t border-zinc-800/80">
-            <div className="flex items-center justify-between text-xs font-mono text-zinc-400">
+          <div className="space-y-2 pt-4 border-t border-black/[0.06]">
+            <div className="flex items-center justify-between text-xs text-[#6e6e73]">
               <span>Progress to Monthly Target</span>
-              <span className="text-white font-semibold">${state.finance.currentMonthIncome} / ${state.finance.monthlyTarget}</span>
+              <span className="text-[#1d1d1f] font-semibold font-tabular-nums">${state.finance.currentMonthIncome} / ${state.finance.monthlyTarget}</span>
             </div>
-            <div className="w-full h-2 rounded-full bg-zinc-900 border border-zinc-800 overflow-hidden">
+            <div className="w-full h-2 rounded-full bg-black/[0.05] overflow-hidden">
               <div 
-                className="h-full bg-white transition-all duration-500 ease-out"
+                className="h-full bg-[#1d1d1f] rounded-full transition-all duration-500 ease-out"
                 style={{ width: `${incomePercent}%` }}
               />
             </div>
@@ -168,15 +160,15 @@ export const FinanceRewardsScreen: React.FC = () => {
             {state.finance.milestones.map((m) => (
               <div
                 key={m.id}
-                className="flex items-center justify-between p-3 rounded-lg bg-zinc-900/40 border border-zinc-800/80 text-xs font-mono"
+                className="flex items-center justify-between p-3 rounded-xl bg-black/[0.015] border border-black/[0.04] text-xs"
               >
                 <div className="flex items-center gap-2">
-                  <span className={m.achieved ? 'text-emerald-400' : 'text-zinc-500'}>
+                  <span className={m.achieved ? 'text-emerald-600' : 'text-black/20'}>
                     <CheckCircle2 className="w-4 h-4" />
                   </span>
-                  <span className={m.achieved ? 'text-zinc-200' : 'text-zinc-400'}>{m.label}</span>
+                  <span className={m.achieved ? 'text-[#1d1d1f] font-medium' : 'text-[#86868b]'}>{m.label}</span>
                 </div>
-                <span className="text-zinc-400">${m.target}</span>
+                <span className="font-tabular-nums text-[#86868b]">${m.target}</span>
               </div>
             ))}
           </div>
@@ -184,32 +176,32 @@ export const FinanceRewardsScreen: React.FC = () => {
       </section>
 
       {/* 2. MATURE XP REWARDS STORE */}
-      <section className="space-y-6 pt-4 border-t border-zinc-800">
+      <section className="space-y-5 pt-4 border-t border-black/[0.06]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <div className="text-xs font-mono text-zinc-400 uppercase tracking-widest">
-              Mature Gamification
+            <div className="text-[11px] font-medium text-[#86868b] uppercase tracking-wider">
+              Gamification
             </div>
-            <h2 className="text-2xl font-serif-display font-semibold text-white mt-1">
+            <h2 className="text-xl sm:text-2xl font-semibold text-[#1d1d1f] mt-1">
               XP Rewards Store
             </h2>
-            <p className="text-xs font-mono text-zinc-400 mt-0.5">
+            <p className="text-xs text-[#6e6e73] mt-0.5">
               Redeem earned XP for guilt-free leisure, rest, or personal upgrades.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-900 border border-zinc-700 text-xs font-mono text-zinc-200">
-              <Sparkles className="w-3.5 h-3.5 text-zinc-300" />
-              <span>Available Balance:</span>
-              <span className="font-bold text-white">{availableXP} XP</span>
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/[0.035] border border-black/[0.06] text-xs text-[#1d1d1f]">
+              <Sparkles className="w-3.5 h-3.5 text-[#1d1d1f]" />
+              <span className="text-[#6e6e73]">Balance:</span>
+              <span className="font-semibold font-tabular-nums text-[#1d1d1f]">{availableXP} XP</span>
             </div>
 
             <button
               onClick={openCreateReward}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-zinc-100 hover:bg-white text-zinc-950 font-medium text-xs font-mono rounded-lg transition-all"
+              className="apple-button-primary flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium"
             >
-              <Plus className="w-3.5 h-3.5 stroke-[3]" />
+              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>New Reward</span>
             </button>
           </div>
@@ -217,7 +209,7 @@ export const FinanceRewardsScreen: React.FC = () => {
 
         {/* Feedback Alert */}
         {redeemFeedback && (
-          <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-700 text-xs font-mono text-zinc-200 text-center animate-fade-in">
+          <div className="p-3 rounded-xl bg-black/[0.04] text-xs font-medium text-[#1d1d1f] text-center">
             {redeemFeedback}
           </div>
         )}
@@ -230,27 +222,27 @@ export const FinanceRewardsScreen: React.FC = () => {
             return (
               <div
                 key={reward.id}
-                className="rounded-xl bg-zinc-950 border border-zinc-800 p-5 flex flex-col justify-between space-y-4 hover:border-zinc-700 transition-colors"
+                className="apple-card p-5 flex flex-col justify-between space-y-4"
               >
                 <div>
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-base font-medium text-white">{reward.title}</h3>
-                    <span className="font-mono text-xs font-semibold text-zinc-200 px-2 py-0.5 rounded bg-zinc-900 border border-zinc-700">
+                    <h3 className="text-sm font-semibold text-[#1d1d1f]">{reward.title}</h3>
+                    <span className="font-tabular-nums text-xs font-semibold text-[#1d1d1f] px-2 py-0.5 rounded-md bg-black/[0.04]">
                       {reward.xpCost} XP
                     </span>
                   </div>
-                  <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">{reward.description}</p>
+                  <p className="text-xs text-[#6e6e73] mt-1.5 leading-relaxed">{reward.description}</p>
                 </div>
 
-                <div className="flex items-center justify-between pt-3 border-t border-zinc-800/80 text-xs font-mono">
-                  <span className="text-zinc-400">
-                    Redeemed: {reward.redemptionsCount} times
+                <div className="flex items-center justify-between pt-3 border-t border-black/[0.06] text-xs">
+                  <span className="text-[#86868b] font-tabular-nums">
+                    Redeemed {reward.redemptionsCount}x
                   </span>
 
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => deleteReward(reward.id)}
-                      className="p-1.5 text-zinc-400 hover:text-red-400 transition-colors"
+                      className="p-1.5 text-[#86868b] hover:text-rose-600 rounded-lg hover:bg-black/[0.04] transition-colors"
                       title="Delete reward"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -258,13 +250,13 @@ export const FinanceRewardsScreen: React.FC = () => {
                     <button
                       onClick={() => handleRedeem(reward)}
                       disabled={!canAfford}
-                      className={`px-3.5 py-1.5 rounded-lg text-xs font-medium tracking-wide transition-all ${
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-all ${
                         canAfford
-                          ? 'bg-zinc-100 hover:bg-white text-zinc-950 shadow'
-                          : 'bg-zinc-900 text-zinc-400 border border-zinc-800 cursor-not-allowed'
+                          ? 'apple-button-primary'
+                          : 'bg-black/[0.03] text-[#86868b] cursor-not-allowed'
                       }`}
                     >
-                      {canAfford ? 'Redeem Reward' : 'Need More XP'}
+                      {canAfford ? 'Redeem' : 'Need More XP'}
                     </button>
                   </div>
                 </div>
@@ -272,87 +264,71 @@ export const FinanceRewardsScreen: React.FC = () => {
             );
           })}
         </div>
-
-        {/* Redemption History */}
-        {state.redemptions.length > 0 && (
-          <div className="space-y-3 pt-4">
-            <h3 className="text-xs font-mono tracking-widest text-zinc-400 uppercase">
-              Recent Redemptions Log ({state.redemptions.length})
-            </h3>
-            <div className="space-y-2">
-              {state.redemptions.slice(0, 5).map((r) => (
-                <div
-                  key={r.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-zinc-900/30 border border-zinc-800/80 text-xs font-mono"
-                >
-                  <span className="text-zinc-300">{r.rewardTitle}</span>
-                  <div className="flex items-center gap-3 text-zinc-400">
-                    <span>-{r.xpSpent} XP</span>
-                    <span>&bull;</span>
-                    <span>{new Date(r.redeemedAt).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </section>
 
       {/* Finance Edit Modal */}
       {isFinanceModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl bg-zinc-950 border border-zinc-700 p-6 space-y-4 subtle-glow">
-            <h3 className="text-lg font-medium text-white border-b border-zinc-800 pb-3">
-              Update Financial Metrics
-            </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white border border-black/10 p-6 sm:p-7 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-black/[0.06] pb-3">
+              <h3 className="text-lg font-semibold text-[#1d1d1f]">
+                Update Financial Metrics
+              </h3>
+              <button
+                onClick={() => setIsFinanceModalOpen(false)}
+                className="text-[#86868b] hover:text-[#1d1d1f] p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <form onSubmit={handleSaveFinance} className="space-y-4">
               <div>
-                <label className="block text-xs font-mono text-zinc-400 uppercase mb-1">
+                <label className="block text-xs font-medium text-[#6e6e73] mb-1">
                   Monthly Target ($)
                 </label>
                 <input
                   type="number"
                   value={monthlyTarget}
                   onChange={(e) => setMonthlyTarget(Number(e.target.value))}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none"
+                  className="w-full bg-black/[0.02] border border-black/[0.08] rounded-xl px-4 py-2 text-xs text-[#1d1d1f] focus:outline-none focus:border-black/30 focus:bg-white font-tabular-nums"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-mono text-zinc-400 uppercase mb-1">
+                <label className="block text-xs font-medium text-[#6e6e73] mb-1">
                   Current Month Income ($)
                 </label>
                 <input
                   type="number"
                   value={currentMonthIncome}
                   onChange={(e) => setCurrentMonthIncome(Number(e.target.value))}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none"
+                  className="w-full bg-black/[0.02] border border-black/[0.08] rounded-xl px-4 py-2 text-xs text-[#1d1d1f] focus:outline-none focus:border-black/30 focus:bg-white font-tabular-nums"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-mono text-zinc-400 uppercase mb-1">
+                <label className="block text-xs font-medium text-[#6e6e73] mb-1">
                   Total Savings / Runway ($)
                 </label>
                 <input
                   type="number"
                   value={savingsTotal}
                   onChange={(e) => setSavingsTotal(Number(e.target.value))}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none"
+                  className="w-full bg-black/[0.02] border border-black/[0.08] rounded-xl px-4 py-2 text-xs text-[#1d1d1f] focus:outline-none focus:border-black/30 focus:bg-white font-tabular-nums"
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-zinc-800">
+              <div className="flex justify-end gap-3 pt-3 border-t border-black/[0.06]">
                 <button
                   type="button"
                   onClick={() => setIsFinanceModalOpen(false)}
-                  className="px-4 py-2 text-xs font-mono text-zinc-400 hover:text-white"
+                  className="px-4 py-2 text-xs font-medium text-[#86868b] hover:text-[#1d1d1f]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-zinc-100 hover:bg-white text-zinc-950 font-medium text-xs font-mono rounded-lg"
+                  className="apple-button-primary px-5 py-2 text-xs font-medium"
                 >
                   Save Metrics
                 </button>
@@ -364,14 +340,22 @@ export const FinanceRewardsScreen: React.FC = () => {
 
       {/* Reward Edit Modal */}
       {isRewardModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl bg-zinc-950 border border-zinc-700 p-6 space-y-4 subtle-glow">
-            <h3 className="text-lg font-medium text-white border-b border-zinc-800 pb-3">
-              Define Custom XP Reward
-            </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white border border-black/10 p-6 sm:p-7 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-black/[0.06] pb-3">
+              <h3 className="text-lg font-semibold text-[#1d1d1f]">
+                Define Custom Reward
+              </h3>
+              <button
+                onClick={() => setIsRewardModalOpen(false)}
+                className="text-[#86868b] hover:text-[#1d1d1f] p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <form onSubmit={handleSaveReward} className="space-y-4">
               <div>
-                <label className="block text-xs font-mono text-zinc-400 uppercase mb-1">
+                <label className="block text-xs font-medium text-[#6e6e73] mb-1">
                   Reward Title
                 </label>
                 <input
@@ -380,12 +364,12 @@ export const FinanceRewardsScreen: React.FC = () => {
                   value={rewardTitle}
                   onChange={(e) => setRewardTitle(e.target.value)}
                   placeholder="e.g. Afternoon Off-Grid Walk"
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none"
+                  className="w-full bg-black/[0.02] border border-black/[0.08] rounded-xl px-4 py-2 text-xs text-[#1d1d1f] focus:outline-none focus:border-black/30 focus:bg-white"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-mono text-zinc-400 uppercase mb-1">
+                <label className="block text-xs font-medium text-[#6e6e73] mb-1">
                   Description
                 </label>
                 <input
@@ -393,12 +377,12 @@ export const FinanceRewardsScreen: React.FC = () => {
                   value={rewardDescription}
                   onChange={(e) => setRewardDescription(e.target.value)}
                   placeholder="e.g. 2 hours in a cafe reading fiction"
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none"
+                  className="w-full bg-black/[0.02] border border-black/[0.08] rounded-xl px-4 py-2 text-xs text-[#1d1d1f] focus:outline-none focus:border-black/30 focus:bg-white"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-mono text-zinc-400 uppercase mb-1">
+                <label className="block text-xs font-medium text-[#6e6e73] mb-1">
                   XP Cost (50–3000)
                 </label>
                 <input
@@ -407,21 +391,21 @@ export const FinanceRewardsScreen: React.FC = () => {
                   max="5000"
                   value={rewardCost}
                   onChange={(e) => setRewardCost(Number(e.target.value))}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none"
+                  className="w-full bg-black/[0.02] border border-black/[0.08] rounded-xl px-4 py-2 text-xs text-[#1d1d1f] focus:outline-none focus:border-black/30 focus:bg-white font-tabular-nums"
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-zinc-800">
+              <div className="flex justify-end gap-3 pt-3 border-t border-black/[0.06]">
                 <button
                   type="button"
                   onClick={() => setIsRewardModalOpen(false)}
-                  className="px-4 py-2 text-xs font-mono text-zinc-400 hover:text-white"
+                  className="px-4 py-2 text-xs font-medium text-[#86868b] hover:text-[#1d1d1f]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-zinc-100 hover:bg-white text-zinc-950 font-medium text-xs font-mono rounded-lg"
+                  className="apple-button-primary px-5 py-2 text-xs font-medium"
                 >
                   Save Reward
                 </button>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNour } from '../context/NourContext';
 import { ScreenType } from '../types';
 import { 
@@ -8,19 +8,14 @@ import {
   RotateCcw, 
   Settings, 
   ShieldAlert,
-  Sparkles,
-  Command,
-  Cloud,
-  CloudOff,
-  RefreshCw
+  Sparkles
 } from 'lucide-react';
 
 interface HeaderProps {
   onOpenSettings: () => void;
-  onOpenShortcuts?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenSettings, onOpenShortcuts }) => {
+export const Header: React.FC<HeaderProps> = ({ onOpenSettings }) => {
   const { 
     screen, 
     setScreen, 
@@ -30,24 +25,35 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSettings, onOpenShortcuts 
     currentLevel, 
     todayDeepWorkMinutes, 
     smartDayState,
-    isMinimumViableDayActive,
-    currentUser,
-    syncStatus,
-    signInWithCloud
+    isMinimumViableDayActive
   } = useNour();
 
-  const navItems: { id: ScreenType; label: string; shortcut: string }[] = [
-    { id: 'today', label: 'Today', shortcut: 'H' },
-    { id: 'habits', label: 'Habits', shortcut: 'B' },
-    { id: 'deep_work', label: 'Deep Work', shortcut: 'D' },
-    { id: 'progress', label: 'Progress', shortcut: 'P' },
-    { id: 'learning', label: 'Learning', shortcut: 'L' },
-    { id: 'rewards', label: 'Rewards', shortcut: 'R' },
-    { id: 'recovery', label: 'Recovery', shortcut: 'C' },
+  const navItems: { id: ScreenType; label: string }[] = [
+    { id: 'today', label: 'Today' },
+    { id: 'habits', label: 'Habits' },
+    { id: 'deep_work', label: 'Deep Work' },
+    { id: 'progress', label: 'Progress' },
+    { id: 'learning', label: 'Learning' },
+    { id: 'rewards', label: 'Rewards' },
+    { id: 'recovery', label: 'Recovery' },
   ];
 
   const deepWorkHours = Math.floor(todayDeepWorkMinutes / 60);
   const deepWorkRemainderMinutes = todayDeepWorkMinutes % 60;
+
+  const activeTimer = state.activeDeepWork;
+  const activeTimerDisplay = useMemo(() => {
+    if (!activeTimer || !activeTimer.isRunning) return null;
+    const s = activeTimer.elapsedSeconds;
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    const h = Math.floor(m / 60);
+    const min = m % 60;
+    if (h > 0) {
+      return `${h}:${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+    }
+    return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+  }, [activeTimer?.elapsedSeconds, activeTimer?.isRunning]);
 
   const getSmartStateBadge = () => {
     if (isMinimumViableDayActive) {
@@ -98,7 +104,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSettings, onOpenShortcuts 
             <button
               id="brand-logo-btn"
               onClick={() => setScreen('today')}
-              title="Nour OS - Today (Shortcut: H)"
               className="flex items-baseline gap-1.5 group cursor-pointer focus:outline-none"
             >
               <span className="font-accent-italic text-2xl md:text-3xl text-white italic font-normal tracking-tight group-hover:text-zinc-200 transition-colors">
@@ -125,23 +130,13 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSettings, onOpenShortcuts 
                   key={item.id}
                   id={`nav-${item.id}-btn`}
                   onClick={() => setScreen(item.id)}
-                  title={`${item.label} (Press '${item.shortcut}')`}
-                  className={`group flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium tracking-wide transition-all duration-200 ${
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-medium tracking-wide transition-all duration-200 ${
                     isActive
                       ? 'bg-zinc-100 text-zinc-950 font-semibold shadow-sm'
                       : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
                   }`}
                 >
-                  <span>{item.label}</span>
-                  <kbd 
-                    className={`hidden xl:inline-block font-mono text-[9px] px-1 py-0.5 rounded leading-none transition-colors ${
-                      isActive
-                        ? 'bg-zinc-300/80 text-zinc-900 font-bold'
-                        : 'text-zinc-500 group-hover:text-zinc-300 bg-zinc-800/80'
-                    }`}
-                  >
-                    {item.shortcut}
-                  </kbd>
+                  {item.label}
                 </button>
               );
             })}
@@ -149,22 +144,38 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSettings, onOpenShortcuts 
 
           {/* Right Status Indicators */}
           <div className="flex items-center gap-2.5 sm:gap-3">
-            {/* Deep Work summary pill */}
-            <button
-              id="header-deepwork-shortcut-btn"
-              onClick={() => setScreen('deep_work')}
-              title="Today's Deep Work (Shortcut: D)"
-              className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 rounded-full text-xs font-mono text-zinc-300 transition-colors"
-            >
-              <Clock className="w-3.5 h-3.5 text-zinc-400" />
-              <span>{deepWorkHours}h {deepWorkRemainderMinutes}m</span>
-            </button>
+            {/* Live Active Timer Pill */}
+            {activeTimer?.isRunning && activeTimerDisplay ? (
+              <button
+                id="header-active-timer-btn"
+                onClick={() => setScreen('deep_work')}
+                title="Active Timer in Progress - Click to view"
+                className="flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-emerald-500/40 hover:border-emerald-400 rounded-full text-xs font-mono text-emerald-300 transition-all shadow-sm group"
+              >
+                <span className={`w-2 h-2 rounded-full ${activeTimer.isPaused ? 'bg-amber-400' : 'bg-emerald-400 animate-pulse'}`} />
+                <span className="font-semibold tracking-wider">{activeTimerDisplay}</span>
+                <span className="text-[10px] text-zinc-400 max-w-[80px] truncate hidden sm:inline">
+                  {activeTimer.category || activeTimer.focusArea}
+                </span>
+              </button>
+            ) : (
+              /* Deep Work summary pill */
+              <button
+                id="header-deepwork-shortcut-btn"
+                onClick={() => setScreen('deep_work')}
+                title="Today's Deep Work"
+                className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 rounded-full text-xs font-mono text-zinc-300 transition-colors"
+              >
+                <Clock className="w-3.5 h-3.5 text-zinc-400" />
+                <span>{deepWorkHours}h {deepWorkRemainderMinutes}m</span>
+              </button>
+            )}
 
             {/* Level & XP pill */}
             <button
               id="header-xp-shortcut-btn"
               onClick={() => setScreen('rewards')}
-              title="Level and Available XP (Shortcut: R)"
+              title="Level and Available XP"
               className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900/90 border border-zinc-800 hover:border-zinc-700 rounded-full text-xs font-mono text-zinc-200 transition-colors"
             >
               <Sparkles className="w-3 h-3 text-zinc-300" />
@@ -178,72 +189,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenSettings, onOpenShortcuts 
               {getSmartStateBadge()}
             </div>
 
-            {/* Keyboard Shortcuts Cheatsheet Toggle */}
-            {onOpenShortcuts && (
-              <button
-                id="header-shortcuts-btn"
-                onClick={onOpenShortcuts}
-                className="hidden sm:flex p-2 text-zinc-400 hover:text-white hover:bg-zinc-800/60 rounded-full transition-colors focus:outline-none"
-                title="Keyboard Shortcuts Cheatsheet (Shortcut: ?)"
-              >
-                <Command className="w-4 h-4" />
-              </button>
-            )}
-
-            {/* Cloud Persistence & Sync status button */}
-            {currentUser ? (
-              <button
-                id="header-cloud-sync-btn"
-                onClick={onOpenSettings}
-                title={
-                  syncStatus === 'synced'
-                    ? `Cloud Synced (${currentUser.email})`
-                    : syncStatus === 'syncing'
-                    ? 'Syncing with Firestore...'
-                    : syncStatus === 'offline'
-                    ? 'Offline - Local cache active'
-                    : 'Cloud sync active (Click for settings)'
-                }
-                className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 rounded-full text-xs font-mono text-zinc-300 transition-colors cursor-pointer"
-              >
-                {syncStatus === 'syncing' ? (
-                  <RefreshCw className="w-3.5 h-3.5 text-sky-400 animate-spin" />
-                ) : syncStatus === 'offline' ? (
-                  <CloudOff className="w-3.5 h-3.5 text-amber-400" />
-                ) : syncStatus === 'error' ? (
-                  <Cloud className="w-3.5 h-3.5 text-rose-400" />
-                ) : (
-                  <Cloud className="w-3.5 h-3.5 text-emerald-400" />
-                )}
-                <span className="hidden sm:inline-block max-w-[90px] truncate text-[11px] text-zinc-300">
-                  {currentUser.displayName?.split(' ')[0] || currentUser.email?.split('@')[0] || 'Synced'}
-                </span>
-                <span 
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    syncStatus === 'synced' ? 'bg-emerald-400' :
-                    syncStatus === 'syncing' ? 'bg-sky-400 animate-pulse' :
-                    syncStatus === 'offline' ? 'bg-amber-400' : 'bg-rose-400'
-                  }`} 
-                />
-              </button>
-            ) : (
-              <button
-                id="header-cloud-signin-btn"
-                onClick={signInWithCloud}
-                title="Sign in with Google to sync across devices"
-                className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 rounded-full text-xs font-mono text-zinc-400 hover:text-white transition-all cursor-pointer"
-              >
-                <Cloud className="w-3.5 h-3.5 text-zinc-400" />
-                <span className="hidden sm:inline-block text-[11px]">Sync Cloud</span>
-              </button>
-            )}
-
             {/* Settings button */}
             <button
               id="header-settings-btn"
               onClick={onOpenSettings}
               className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800/60 rounded-full transition-colors focus:outline-none"
-              title="Settings & Backup (Shortcut: S)"
+              title="Settings & System Data"
             >
               <Settings className="w-4 h-4" />
             </button>

@@ -69,6 +69,15 @@ export interface ActiveDeepWork {
   startedAt: number; // unix timestamp
   elapsedSeconds: number;
   focusArea: string;
+  area?: TimeArea;
+  category?: string;
+  missionId?: string;
+  habitId?: string;
+  taskId?: string;
+  notes?: string;
+  lastTickTimestamp?: number;
+  pauseStartedAt?: number;
+  totalPausedSeconds?: number;
 }
 
 export type MoodType = 'great' | 'good' | 'neutral' | 'low' | 'drained';
@@ -144,6 +153,40 @@ export interface RecoveryEvent {
   completed: boolean;
 }
 
+export type TimeArea = 'Learning' | 'Fitness' | 'University' | 'Career' | 'Personal' | 'Other';
+
+export interface TimeEntry {
+  id: string;
+  date: string; // YYYY-MM-DD
+  durationMinutes: number;
+  durationSeconds?: number;
+  area: TimeArea;
+  category: string;
+  note?: string;
+  missionId?: string;
+  habitId?: string;
+  taskId?: string;
+  startedAt?: number;
+  endedAt?: number;
+  source?: 'timer' | 'manual';
+  status?: 'completed';
+  createdAt: number;
+}
+
+export interface TimerRecordedToast {
+  id: string;
+  durationText: string;
+  area: TimeArea;
+  category: string;
+  timestamp: number;
+}
+
+export interface WeeklyReviewData {
+  wentWell: string;
+  needsAttention: string;
+  updatedAt?: number;
+}
+
 export interface NourOSState {
   user: UserConfig;
   missions: Record<string, Mission>; // keyed by date YYYY-MM-DD
@@ -161,4 +204,6 @@ export interface NourOSState {
   totalSpentXP: number;
   recoveryEvents: RecoveryEvent[];
   hasSeenOpening: boolean;
+  timeEntries?: TimeEntry[];
+  weeklyReviews?: Record<string, WeeklyReviewData>;
 }

@@ -2,14 +2,8 @@ import React, { useState } from 'react';
 import { useNour } from '../context/NourContext';
 import { 
   RotateCcw, 
-  CheckCircle2, 
-  ArrowRight, 
-  ShieldAlert, 
-  Compass, 
   Check, 
-  Sparkles, 
-  ChevronRight,
-  Heart
+  Sparkles
 } from 'lucide-react';
 
 export const RecoveryScreen: React.FC = () => {
@@ -18,14 +12,12 @@ export const RecoveryScreen: React.FC = () => {
     triggerRecovery, 
     completeRecoveryMicroAction, 
     activateMinimumViableDay, 
-    isMinimumViableDayActive,
     setScreen 
   } = useNour();
 
-  const [reason, setReason] = useState('Lost momentum / Doomscrolling');
-  const [selectedMicroAction, setSelectedMicroAction] = useState('10-minute walk without phone');
+  const [reason, setReason] = useState('Doomscrolling & dopamine loop');
+  const [selectedMicroAction, setSelectedMicroAction] = useState('10-minute walk outside with zero phone / headphones');
   const [customMicroAction, setCustomMicroAction] = useState('');
-  const [stepCompleted, setStepCompleted] = useState(false);
 
   const microActionOptions = [
     '10-minute walk outside with zero phone / headphones',
@@ -39,45 +31,44 @@ export const RecoveryScreen: React.FC = () => {
     const action = customMicroAction.trim() || selectedMicroAction;
     triggerRecovery(reason, action);
     activateMinimumViableDay();
-    setStepCompleted(true);
   };
 
   const activeRecovery = state.recoveryEvents.find(e => !e.completed);
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
-      <div className="border-b border-zinc-800 pb-4">
-        <div className="text-xs font-mono text-zinc-400 uppercase tracking-widest">
+      <div className="border-b border-black/[0.06] pb-4">
+        <div className="text-[11px] font-medium text-[#86868b] uppercase tracking-wider">
           Reset Protocol
         </div>
-        <h1 className="text-2xl sm:text-3xl font-serif-display font-semibold tracking-wide text-white mt-1">
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#1d1d1f] mt-1">
           Guilt-Free Recovery
         </h1>
-        <p className="text-xs font-mono text-zinc-400 mt-2">
+        <p className="text-xs text-[#6e6e73] mt-1.5">
           "A bad day is allowed. A zero day is avoidable. What is the smallest useful action I can take now?"
         </p>
       </div>
 
       {/* Active Recovery Ongoing */}
       {activeRecovery && !activeRecovery.completed ? (
-        <div className="rounded-2xl bg-zinc-950 border border-zinc-700/80 p-6 sm:p-8 subtle-glow space-y-6">
+        <div className="apple-card p-6 sm:p-8 space-y-6">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            <span className="text-xs font-mono text-amber-300 uppercase tracking-wider">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            <span className="text-[11px] font-semibold text-amber-800 uppercase tracking-wider">
               RECOVERY IN PROGRESS
             </span>
           </div>
 
           <div>
-            <h2 className="text-xl font-medium text-white">Your Single Micro-Action:</h2>
-            <p className="text-base text-zinc-200 mt-2 font-mono p-4 rounded-xl bg-zinc-900 border border-zinc-800">
+            <h2 className="text-lg font-semibold text-[#1d1d1f]">Your Single Micro-Action:</h2>
+            <p className="text-sm text-[#1d1d1f] mt-2.5 p-4 rounded-xl bg-amber-500/[0.06] border border-amber-500/20 font-medium">
               {activeRecovery.microAction}
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-zinc-800">
-            <span className="text-xs font-mono text-zinc-400">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-black/[0.06]">
+            <span className="text-xs text-[#86868b]">
               Minimum Viable Day is currently active.
             </span>
 
@@ -87,34 +78,34 @@ export const RecoveryScreen: React.FC = () => {
                 completeRecoveryMicroAction(activeRecovery.id);
                 setScreen('today');
               }}
-              className="flex items-center justify-center gap-2 px-6 py-3 bg-zinc-100 hover:bg-white text-zinc-950 rounded-xl font-medium text-xs font-mono tracking-wider uppercase transition-all shadow"
+              className="apple-button-primary flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-medium"
             >
-              <Check className="w-4 h-4 stroke-[3]" />
+              <Check className="w-4 h-4 stroke-[2.5]" />
               <span>Mark Micro-Action Done (+25 XP)</span>
             </button>
           </div>
         </div>
       ) : (
         /* Recovery Initiation Flow */
-        <div className="rounded-2xl bg-zinc-950 border border-zinc-800 p-6 sm:p-8 subtle-glow space-y-8">
-          <div className="space-y-2">
-            <span className="text-xs font-mono text-zinc-400 uppercase tracking-wider">
-              Step 01 // Stop the Bleed
+        <div className="apple-card p-6 sm:p-8 space-y-7">
+          <div className="space-y-1.5">
+            <span className="text-[11px] font-medium text-[#86868b] uppercase tracking-wider">
+              Step 01 &bull; Stop the Bleed
             </span>
-            <h2 className="text-xl font-medium text-white">
+            <h2 className="text-lg sm:text-xl font-semibold text-[#1d1d1f]">
               Acknowledge the moment without guilt.
             </h2>
-            <p className="text-xs text-zinc-400 leading-relaxed">
+            <p className="text-xs text-[#6e6e73] leading-relaxed">
               Discipline is not about never slipping; it is about how rapidly you interrupt the slip. Close distracting windows, take one slow breath, and lower your cognitive load.
             </p>
           </div>
 
           {/* Trigger selector */}
-          <div className="space-y-3 pt-2">
-            <label className="block text-xs font-mono text-zinc-400 uppercase tracking-wider">
+          <div className="space-y-2.5 pt-1">
+            <label className="block text-xs font-medium text-[#6e6e73]">
               What caused the friction today?
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               {[
                 'Doomscrolling & dopamine loop',
                 'Feeling overwhelmed by too many tasks',
@@ -128,8 +119,8 @@ export const RecoveryScreen: React.FC = () => {
                   onClick={() => setReason(r)}
                   className={`p-3 rounded-xl border text-left transition-all ${
                     reason === r
-                      ? 'bg-zinc-800 text-white border-zinc-600'
-                      : 'bg-zinc-900/50 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                      ? 'bg-black/[0.04] text-[#1d1d1f] font-medium border-black/20 shadow-xs'
+                      : 'bg-white text-[#6e6e73] border-black/[0.06] hover:bg-black/[0.02]'
                   }`}
                 >
                   {r}
@@ -139,9 +130,9 @@ export const RecoveryScreen: React.FC = () => {
           </div>
 
           {/* Step 2: Choose smallest useful action */}
-          <div className="space-y-3 pt-4 border-t border-zinc-800">
-            <span className="text-xs font-mono text-zinc-400 uppercase tracking-wider">
-              Step 02 // Pick ONE Micro-Action (under 15 minutes)
+          <div className="space-y-2.5 pt-4 border-t border-black/[0.06]">
+            <span className="text-[11px] font-medium text-[#86868b] uppercase tracking-wider">
+              Step 02 &bull; Pick ONE Micro-Action (under 15 minutes)
             </span>
 
             <div className="space-y-2">
@@ -153,15 +144,15 @@ export const RecoveryScreen: React.FC = () => {
                     setSelectedMicroAction(opt);
                     setCustomMicroAction('');
                   }}
-                  className={`w-full p-3 rounded-xl border text-left text-xs font-mono transition-all flex items-center justify-between ${
+                  className={`w-full p-3 rounded-xl border text-left text-xs transition-all flex items-center justify-between ${
                     selectedMicroAction === opt && !customMicroAction
-                      ? 'bg-zinc-800 text-white border-zinc-600'
-                      : 'bg-zinc-900/40 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                      ? 'bg-black/[0.04] text-[#1d1d1f] font-medium border-black/20 shadow-xs'
+                      : 'bg-white text-[#6e6e73] border-black/[0.06] hover:bg-black/[0.02]'
                   }`}
                 >
                   <span>{opt}</span>
                   {selectedMicroAction === opt && !customMicroAction && (
-                    <Check className="w-4 h-4 text-white shrink-0" />
+                    <Check className="w-4 h-4 text-[#1d1d1f] shrink-0" />
                   )}
                 </button>
               ))}
@@ -173,21 +164,21 @@ export const RecoveryScreen: React.FC = () => {
                 value={customMicroAction}
                 onChange={(e) => setCustomMicroAction(e.target.value)}
                 placeholder="Or type a custom micro-action..."
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-xs font-mono text-white placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600"
+                className="w-full bg-black/[0.02] border border-black/[0.08] rounded-xl px-4 py-2.5 text-xs text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none focus:border-black/30 focus:bg-white"
               />
             </div>
           </div>
 
           {/* Step 3: Launch Recovery */}
-          <div className="pt-4 border-t border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="text-xs font-mono text-zinc-400">
-              Automatically enables <span className="text-zinc-200">Minimum Viable Day</span> (+30 XP).
+          <div className="pt-4 border-t border-black/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="text-xs text-[#6e6e73]">
+              Enables <strong className="text-[#1d1d1f]">Minimum Viable Day</strong> (+30 XP).
             </div>
 
             <button
               id="activate-recovery-btn"
               onClick={handleTrigger}
-              className="flex items-center justify-center gap-2 px-6 py-3.5 bg-zinc-100 hover:bg-white text-zinc-950 rounded-xl font-medium text-xs font-mono tracking-widest uppercase transition-all shadow-md"
+              className="apple-button-primary flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-medium"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Lock Recovery & Start Micro-Action</span>
@@ -198,11 +189,11 @@ export const RecoveryScreen: React.FC = () => {
 
       {/* Recovery History */}
       {state.recoveryEvents.length > 0 && (
-        <div className="space-y-3 pt-4">
-          <h3 className="text-xs font-mono tracking-widest text-zinc-400 uppercase">
+        <div className="space-y-3 pt-2">
+          <h3 className="text-xs font-semibold text-[#1d1d1f] uppercase tracking-wider">
             Past Recovery Events ({state.recoveryEvents.length})
           </h3>
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-[#86868b]">
             Every recovery log is proof that you interrupted a slide instead of letting the week collapse.
           </p>
 
@@ -210,15 +201,15 @@ export const RecoveryScreen: React.FC = () => {
             {state.recoveryEvents.slice(0, 5).map((evt) => (
               <div
                 key={evt.id}
-                className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80 text-xs font-mono flex items-center justify-between gap-4"
+                className="apple-card p-3.5 text-xs flex items-center justify-between gap-4"
               >
                 <div>
-                  <span className="text-zinc-300 font-medium">{evt.microAction}</span>
-                  <p className="text-zinc-400 mt-0.5 text-[11px]">{evt.reason || 'Momentum reset'}</p>
+                  <span className="text-[#1d1d1f] font-medium">{evt.microAction}</span>
+                  <p className="text-[#86868b] mt-0.5 text-[11px]">{evt.reason || 'Momentum reset'}</p>
                 </div>
                 <div className="text-right shrink-0">
-                  <span className="text-emerald-400 font-semibold">Recovered</span>
-                  <div className="text-zinc-400 text-[10px]">{new Date(evt.timestamp).toLocaleDateString()}</div>
+                  <span className="text-emerald-700 font-medium">Recovered</span>
+                  <div className="text-[#86868b] font-tabular-nums text-[10px]">{new Date(evt.timestamp).toLocaleDateString()}</div>
                 </div>
               </div>
             ))}

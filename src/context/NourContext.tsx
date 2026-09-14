@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useRef } from 'react';
-import { User, onAuthStateChanged } from 'firebase/auth';
 import { 
   NourOSState, 
   ScreenType, 
@@ -12,26 +11,21 @@ import {
   FinancialProfile, 
   UserConfig, 
   RecoveryEvent,
-  DailyCheckIn,
-  MoodType,
-  DayRecord
+  TimeEntry,
+  TimeArea,
+  TimerRecordedToast
 } from '../types';
-import { loadState, saveState, clearAllStorage, getTodayKey, generateDefaultState, getDayNumberInSeason } from '../utils/defaults';
-import { 
-  auth, 
-  signInWithGoogle, 
-  signOutUser, 
-  fetchRemoteState, 
-  saveRemoteState, 
-  subscribeToRemoteState 
-} from '../lib/firebase';
-import { 
-  createLocalBackupSnapshot, 
-  mergeLocalAndRemoteStates, 
-  getPreMigrationBackup 
-} from '../utils/migration';
+import { loadState, saveState, getTodayKey, generateDefaultState, getDayNumberInSeason } from '../utils/defaults';
 
-export type CloudSyncStatus = 'local_only' | 'syncing' | 'synced' | 'error' | 'offline';
+export interface StartTimerOptions {
+  focusArea: string;
+  area?: TimeArea;
+  category?: string;
+  missionId?: string;
+  habitId?: string;
+  taskId?: string;
+  notes?: string;
+}
 
 interface NourContextType {
   state: NourOSState;
@@ -40,20 +34,9 @@ interface NourContextType {
   todayKey: string;
   dayNumber: number;
   
-  // Cloud Authentication & Sync
-  currentUser: User | null;
-  isAuthLoading: boolean;
-  isCloudSyncing: boolean;
-  syncStatus: CloudSyncStatus;
-  syncError: string | null;
-  lastSyncedAt: Date | null;
-  signInWithCloud: () => Promise<void>;
-  signOutCloud: () => Promise<void>;
-  forceCloudSync: () => Promise<void>;
-  restorePreMigrationBackup: () => boolean;
-
   // Mission
   todayMission: Mission | null;
+  completedMissions: Mission[];
   saveTodayMission: (title: string, description?: string, category?: Mission['category']) => void;
   setMissionStatus: (status: Mission['status']) => void;
   
@@ -65,10 +48,10 @@ interface NourContextType {
   deleteHabit: (habitId: string) => void;
   reorderHabits: (habits: Habit[]) => void;
   
-  // Deep Work
+  // Deep Work & Timer Engine
   todayDeepWorkMinutes: number;
   weeklyDeepWorkHours: number;
-  startDeepWork: (focusArea: string) => void;
+  startDeepWork: (focusAreaOrOptions: string | StartTimerOptions, maybeOptions?: Partial<StartTimerOptions>) => void;
   pauseDeepWork: () => void;
   resumeDeepWork: () => void;
   finishDeepWork: (notes?: string) => void;
@@ -94,6 +77,15 @@ interface NourContextType {
   saveLearningItem: (item: LearningRoadmapItem) => void;
   saveFinance: (finance: FinancialProfile) => void;
   
+  // Time Tracking
+  timeEntries: TimeEntry[];
+  addTimeEntry: (entry: Omit<TimeEntry, 'id' | 'createdAt'>) => void;
+  deleteTimeEntry: (id: string) => void;
+  updateTimeEntry: (entry: TimeEntry) => void;
+  timerToast: TimerRecordedToast | null;
+  dismissTimerToast: () => void;
+  saveWeeklyReview: (weekKey: string, wentWell: string, needsAttention: string) => void;
+
   // State & Settings
   saveUserSettings: (user: Partial<UserConfig>) => void;
   resetAllData: () => void;
@@ -101,10 +93,6 @@ interface NourContextType {
   importJSON: (data: string) => boolean;
   dismissOpening: () => void;
   
-  // Daily Check-In
-  todayCheckIn: DailyCheckIn | null;
-  saveDailyCheckIn: (checkIn: { mood: MoodType; energyLevel: number; keyWin: string }) => void;
-
   // Derived state
   smartDayState: SmartDayState;
   mentorPrompt: string;
@@ -118,172 +106,26 @@ export const NourProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [screen, setScreen] = useState<ScreenType>('today');
   const todayKey = getTodayKey();
 
-  // Cloud Auth & Sync State
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [isCloudSyncing, setIsCloudSyncing] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<CloudSyncStatus>('local_only');
-  const [syncError, setSyncError] = useState<string | null>(null);
-  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
-
-  // Refs to avoid circular updates and debounce writes
-  const isRemoteUpdateRef = useRef(false);
-  const stateRef = useRef(state);
-  stateRef.current = state;
-  const pendingSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Handle Firebase Auth and initial Cloud Migration / Sync
+  // Keep state synchronized to localStorage
   useEffect(() => {
-    let unsubscribeSnapshot: (() => void) | null = null;
-
-    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
-      setIsAuthLoading(false);
-      setCurrentUser(firebaseUser);
-
-      if (unsubscribeSnapshot) {
-        unsubscribeSnapshot();
-        unsubscribeSnapshot = null;
-      }
-
-      if (!firebaseUser) {
-        setSyncStatus('local_only');
-        setSyncError(null);
-        return;
-      }
-
-      // User signed in - begin safe sync and migration workflow
-      setSyncStatus('syncing');
-      setSyncError(null);
-
-      try {
-        // 1. Always create a local safety snapshot before interacting with cloud
-        createLocalBackupSnapshot('pre_cloud_sync');
-
-        // 2. Fetch remote document for this user
-        const remoteState = await fetchRemoteState(firebaseUser.uid);
-
-        if (!remoteState) {
-          // FIRST-TIME MIGRATION: User has no cloud record yet.
-          // Migrate existing local state to Firestore as initial baseline
-          console.log('[Cloud Sync] First-time login: Migrating local state to Firestore');
-          await saveRemoteState(firebaseUser.uid, stateRef.current);
-          setLastSyncedAt(new Date());
-          setSyncStatus('synced');
-        } else {
-          // CLOUD HAS RECORD: Safely merge local and remote states
-          console.log('[Cloud Sync] Existing user record found: Merging local and cloud states');
-          const mergedState = mergeLocalAndRemoteStates(stateRef.current, remoteState);
-          
-          isRemoteUpdateRef.current = true;
-          setState(mergedState);
-          saveState(mergedState);
-          await saveRemoteState(firebaseUser.uid, mergedState);
-          setLastSyncedAt(new Date());
-          setSyncStatus('synced');
-        }
-
-        // 3. Subscribe to real-time updates from other tabs or devices
-        unsubscribeSnapshot = subscribeToRemoteState(
-          firebaseUser.uid,
-          (incomingRemoteState) => {
-            if (isRemoteUpdateRef.current) {
-              isRemoteUpdateRef.current = false;
-              return;
-            }
-            console.log('[Cloud Sync] Incoming remote update received');
-            setState((currentLocal) => {
-              const merged = mergeLocalAndRemoteStates(currentLocal, incomingRemoteState);
-              saveState(merged);
-              return merged;
-            });
-            setLastSyncedAt(new Date());
-            setSyncStatus('synced');
-          },
-          (err) => {
-            console.error('[Cloud Sync] Listener error:', err);
-            setSyncStatus('error');
-            setSyncError(err.message);
-          }
-        );
-      } catch (err: any) {
-        console.error('[Cloud Sync] Initialization/migration error:', err);
-        setSyncStatus('error');
-        setSyncError(err?.message || 'Failed to sync with cloud');
-      }
-    });
-
-    return () => {
-      unsubscribeAuth();
-      if (unsubscribeSnapshot) unsubscribeSnapshot();
-    };
-  }, []);
-
-  // Save changes to localStorage immediately and debounce cloud writes
-  useEffect(() => {
-    // Immediate local persistence
     saveState(state);
+  }, [state]);
 
-    if (!currentUser) return;
+  const isFinishingRef = useRef(false);
+  const [timerToast, setTimerToast] = useState<TimerRecordedToast | null>(null);
 
-    // Debounce cloud write (650ms) to batch rapid UI actions (ticking habits, etc.)
-    if (pendingSaveTimeoutRef.current) {
-      clearTimeout(pendingSaveTimeoutRef.current);
-    }
-
-    setIsCloudSyncing(true);
-    pendingSaveTimeoutRef.current = setTimeout(async () => {
-      try {
-        await saveRemoteState(currentUser.uid, state);
-        setIsCloudSyncing(false);
-        setSyncStatus('synced');
-        setLastSyncedAt(new Date());
-        setSyncError(null);
-      } catch (err: any) {
-        console.error('[Cloud Sync] Failed to push state to Firestore:', err);
-        setIsCloudSyncing(false);
-        if (typeof navigator !== 'undefined' && !navigator.onLine) {
-          setSyncStatus('offline');
-        } else {
-          setSyncStatus('error');
-          setSyncError(err?.message || 'Sync error');
-        }
-      }
-    }, 650);
-
-    return () => {
-      if (pendingSaveTimeoutRef.current) {
-        clearTimeout(pendingSaveTimeoutRef.current);
-      }
-    };
-  }, [state, currentUser]);
-
-  // Network online/offline listener
+  // Auto-dismiss lightweight timer toast after 6 seconds
   useEffect(() => {
-    const handleOnline = () => {
-      if (currentUser) {
-        setSyncStatus('syncing');
-        saveRemoteState(currentUser.uid, stateRef.current)
-          .then(() => {
-            setSyncStatus('synced');
-            setLastSyncedAt(new Date());
-            setSyncError(null);
-          })
-          .catch(() => setSyncStatus('error'));
-      }
-    };
-    const handleOffline = () => {
-      if (currentUser) {
-        setSyncStatus('offline');
-      }
-    };
+    if (!timerToast) return;
+    const timer = setTimeout(() => {
+      setTimerToast(null);
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, [timerToast]);
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, [currentUser]);
+  const dismissTimerToast = () => {
+    setTimerToast(null);
+  };
 
   // Handle active deep work timer ticks
   useEffect(() => {
@@ -296,11 +138,15 @@ export const NourProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!prev.activeDeepWork || !prev.activeDeepWork.isRunning || prev.activeDeepWork.isPaused) {
           return prev;
         }
+        const now = Date.now();
+        const last = prev.activeDeepWork.lastTickTimestamp || now;
+        const delta = Math.max(1, Math.floor((now - last) / 1000));
         return {
           ...prev,
           activeDeepWork: {
             ...prev.activeDeepWork,
-            elapsedSeconds: prev.activeDeepWork.elapsedSeconds + 1
+            elapsedSeconds: prev.activeDeepWork.elapsedSeconds + delta,
+            lastTickTimestamp: now
           }
         };
       });
@@ -317,6 +163,17 @@ export const NourProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const todayMission = useMemo(() => {
     return state.missions[todayKey] || null;
   }, [state.missions, todayKey]);
+
+  const completedMissions = useMemo(() => {
+    const list = Object.values(state.missions || {}) as Mission[];
+    return list
+      .filter((m): m is Mission => Boolean(m && m.status === 'completed'))
+      .sort((a, b) => {
+        const dateA = a.date || '';
+        const dateB = b.date || '';
+        return dateB.localeCompare(dateA);
+      });
+  }, [state.missions]);
 
   const todayCompletedHabitIds = useMemo(() => {
     return state.completions[todayKey] || [];
@@ -367,10 +224,6 @@ export const NourProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isMinimumViableDayActive = useMemo(() => {
     const record = state.dayRecords[todayKey];
     return record?.state === 'minimum_viable';
-  }, [state.dayRecords, todayKey]);
-
-  const todayCheckIn = useMemo(() => {
-    return state.dayRecords[todayKey]?.checkIn || null;
   }, [state.dayRecords, todayKey]);
 
   const activeHabits = useMemo(() => {
@@ -572,28 +425,129 @@ export const NourProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
   };
 
-  // Deep Work Actions
-  const startDeepWork = (focusArea: string) => {
+  // Deep Work & Timer Engine Actions
+  const startDeepWork = (focusAreaOrOptions: string | StartTimerOptions, maybeOptions?: Partial<StartTimerOptions>) => {
+    let opts: StartTimerOptions;
+    if (typeof focusAreaOrOptions === 'string') {
+      opts = {
+        focusArea: focusAreaOrOptions,
+        ...maybeOptions
+      };
+    } else {
+      opts = {
+        ...focusAreaOrOptions,
+        ...maybeOptions
+      };
+    }
+
+    const focusTitle = (opts.focusArea || '').trim() || 'Software Engineering Flow';
+    const mission = opts.missionId 
+      ? (state.missions[todayKey]?.id === opts.missionId ? state.missions[todayKey] : null) 
+      : (todayMission?.id === opts.missionId ? todayMission : null);
+    const habit = opts.habitId ? state.habits.find(h => h.id === opts.habitId) : null;
+    
+    // Smart Context Detection: Area & Category
+    let resolvedArea: TimeArea = opts.area || 'Learning';
+    let resolvedCategory: string = opts.category || '';
+
+    if (!opts.area || !opts.category) {
+      if (habit) {
+        if (habit.category === 'health') {
+          resolvedArea = opts.area || 'Fitness';
+          resolvedCategory = opts.category || 'Workout';
+        } else if (habit.category === 'discipline') {
+          resolvedArea = opts.area || 'Personal';
+          resolvedCategory = opts.category || habit.name;
+        } else if (habit.id === 'habit_cs_study') {
+          resolvedArea = opts.area || 'University';
+          resolvedCategory = opts.category || 'Computer Science';
+        } else {
+          resolvedArea = opts.area || 'Learning';
+          resolvedCategory = opts.category || habit.name;
+        }
+      } else if (mission) {
+        if (mission.category === 'cs_study') {
+          resolvedArea = opts.area || 'University';
+          resolvedCategory = opts.category || 'Computer Science';
+        } else if (mission.category === 'software_dev') {
+          resolvedArea = opts.area || 'Learning';
+          resolvedCategory = opts.category || 'Software Dev';
+        } else if (mission.category === 'ai_project') {
+          resolvedArea = opts.area || 'Learning';
+          resolvedCategory = opts.category || 'AI Models';
+        } else if (mission.category === 'career_deliverable') {
+          resolvedArea = opts.area || 'Career';
+          resolvedCategory = opts.category || 'Deliverables';
+        } else if (mission.category === 'exam') {
+          resolvedArea = opts.area || 'University';
+          resolvedCategory = opts.category || 'Exams';
+        }
+      } else {
+        const text = focusTitle.toLowerCase();
+        if (text.includes('cs50') || text.includes('pointer') || text.includes('c ') || text.includes('algorithm') || text.includes('math') || text.includes('university') || text.includes('lecture') || text.includes('assignment')) {
+          resolvedArea = opts.area || 'University';
+          resolvedCategory = opts.category || (text.includes('math') ? 'Mathematics' : 'Computer Science');
+        } else if (text.includes('fastapi') || text.includes('backend') || text.includes('python') || text.includes('api') || text.includes('database') || text.includes('sql') || text.includes('docker')) {
+          resolvedArea = opts.area || 'Learning';
+          resolvedCategory = opts.category || (text.includes('python') ? 'Python' : text.includes('fastapi') ? 'FastAPI' : 'Backend Systems');
+        } else if (text.includes('ai') || text.includes('model') || text.includes('gemini') || text.includes('agent') || text.includes('prompt')) {
+          resolvedArea = opts.area || 'Learning';
+          resolvedCategory = opts.category || 'AI & Models';
+        } else if (text.includes('workout') || text.includes('gym') || text.includes('run') || text.includes('lift') || text.includes('training') || text.includes('fitness')) {
+          resolvedArea = opts.area || 'Fitness';
+          resolvedCategory = opts.category || 'Workout';
+        } else if (text.includes('client') || text.includes('portfolio') || text.includes('job') || text.includes('resume') || text.includes('revenue') || text.includes('freelance')) {
+          resolvedArea = opts.area || 'Career';
+          resolvedCategory = opts.category || 'Deliverables';
+        } else if (text.includes('read') || text.includes('book') || text.includes('reflection') || text.includes('meditat') || text.includes('sleep')) {
+          resolvedArea = opts.area || 'Personal';
+          resolvedCategory = opts.category || 'Reflection';
+        } else {
+          resolvedArea = opts.area || 'Learning';
+          resolvedCategory = opts.category || 'Programming';
+        }
+      }
+    }
+
+    if (!resolvedCategory) {
+      resolvedCategory = focusTitle.slice(0, 24);
+    }
+
+    const now = Date.now();
     setState(prev => ({
       ...prev,
       activeDeepWork: {
         isRunning: true,
         isPaused: false,
-        startedAt: Date.now(),
+        startedAt: now,
+        lastTickTimestamp: now,
         elapsedSeconds: 0,
-        focusArea: focusArea.trim() || 'Software Engineering Flow'
+        totalPausedSeconds: 0,
+        focusArea: focusTitle,
+        area: resolvedArea,
+        category: resolvedCategory,
+        missionId: opts.missionId,
+        habitId: opts.habitId,
+        taskId: opts.taskId,
+        notes: opts.notes
       }
     }));
   };
 
   const pauseDeepWork = () => {
     setState(prev => {
-      if (!prev.activeDeepWork) return prev;
+      if (!prev.activeDeepWork || !prev.activeDeepWork.isRunning || prev.activeDeepWork.isPaused) return prev;
+      const now = Date.now();
+      const last = prev.activeDeepWork.lastTickTimestamp || now;
+      const tickDelta = Math.max(0, Math.floor((now - last) / 1000));
       return {
         ...prev,
         activeDeepWork: {
           ...prev.activeDeepWork,
-          isPaused: true
+          isPaused: true,
+          pauseStartedAt: now,
+          lastTickTimestamp: now,
+          elapsedSeconds: prev.activeDeepWork.elapsedSeconds + tickDelta
         }
       };
     });
@@ -601,33 +555,84 @@ export const NourProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const resumeDeepWork = () => {
     setState(prev => {
-      if (!prev.activeDeepWork) return prev;
+      if (!prev.activeDeepWork || !prev.activeDeepWork.isPaused) return prev;
+      const now = Date.now();
+      const pauseDuration = prev.activeDeepWork.pauseStartedAt 
+        ? Math.max(0, Math.floor((now - prev.activeDeepWork.pauseStartedAt) / 1000))
+        : 0;
       return {
         ...prev,
         activeDeepWork: {
           ...prev.activeDeepWork,
-          isPaused: false
+          isPaused: false,
+          pauseStartedAt: undefined,
+          lastTickTimestamp: now,
+          totalPausedSeconds: (prev.activeDeepWork.totalPausedSeconds || 0) + pauseDuration
         }
       };
     });
   };
 
   const finishDeepWork = (notes?: string) => {
+    // Duplicate click protection
+    if (isFinishingRef.current) return;
+    isFinishingRef.current = true;
+    setTimeout(() => {
+      isFinishingRef.current = false;
+    }, 1200);
+
     setState(prev => {
-      if (!prev.activeDeepWork) return prev;
-      const durationMin = Math.max(1, Math.floor(prev.activeDeepWork.elapsedSeconds / 60));
+      const active = prev.activeDeepWork;
+      if (!active || !active.isRunning) return prev;
+
+      const endedAt = Date.now();
+      let totalProductiveSeconds = active.elapsedSeconds;
+      if (!active.isPaused && active.lastTickTimestamp) {
+        const delta = Math.max(0, Math.floor((endedAt - active.lastTickTimestamp) / 1000));
+        totalProductiveSeconds += delta;
+      }
+
+      // Calculate duration: if at least 30s elapsed, round to minutes; minimum 1 min
+      const durationMin = totalProductiveSeconds >= 30 
+        ? Math.max(1, Math.round(totalProductiveSeconds / 60))
+        : Math.max(1, Math.floor(totalProductiveSeconds / 60));
+
       // XP reward: 1 XP per minute, with 20% bonus if >= 60 minutes
       const bonus = durationMin >= 60 ? Math.floor(durationMin * 0.2) : 0;
       const earnedXP = durationMin + bonus;
 
+      const sessionNotes = (notes && notes.trim()) ? notes.trim() : (active.notes || undefined);
+      const sessionArea: TimeArea = active.area || 'Learning';
+      const sessionCategory = active.category || 'Programming';
+
+      // 1. DeepWorkSession record (existing system model)
       const newSession: DeepWorkSession = {
-        id: `dw_${Date.now()}`,
+        id: `dw_${endedAt}`,
         date: todayKey,
         durationMinutes: durationMin,
-        focusArea: prev.activeDeepWork.focusArea,
+        focusArea: active.focusArea,
         xpEarned: earnedXP,
-        timestamp: Date.now(),
-        notes
+        timestamp: endedAt,
+        notes: sessionNotes
+      };
+
+      // 2. Automatic TimeEntry record for time analytics & history
+      const newTimeEntry: TimeEntry = {
+        id: `time_timer_${endedAt}_${Math.random().toString(36).substring(2, 6)}`,
+        date: todayKey,
+        durationMinutes: durationMin,
+        durationSeconds: totalProductiveSeconds,
+        area: sessionArea,
+        category: sessionCategory,
+        note: sessionNotes,
+        missionId: active.missionId,
+        habitId: active.habitId,
+        taskId: active.taskId,
+        startedAt: active.startedAt,
+        endedAt,
+        source: 'timer',
+        status: 'completed',
+        createdAt: endedAt
       };
 
       // If finished session >= 45m, auto-check Deep Work habit
@@ -637,10 +642,43 @@ export const NourProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updatedCompletions.push('habit_deepwork');
       }
 
+      // If finished session linked to a habit, auto-check that habit
+      if (active.habitId && !updatedCompletions.includes(active.habitId)) {
+        updatedCompletions.push(active.habitId);
+      }
+
+      // If finished session linked to mission, update status if not started
+      let updatedMissions = { ...prev.missions };
+      if (active.missionId && updatedMissions[todayKey]?.id === active.missionId) {
+        if (updatedMissions[todayKey].status === 'not_started') {
+          updatedMissions[todayKey] = {
+            ...updatedMissions[todayKey],
+            status: 'in_progress',
+            startedAt: updatedMissions[todayKey].startedAt || active.startedAt
+          };
+        }
+      }
+
+      // Trigger lightweight confirmation toast
+      const mins = Math.floor(totalProductiveSeconds / 60);
+      const secs = totalProductiveSeconds % 60;
+      const durationText = mins > 0 ? (secs > 0 ? `${mins}m ${secs}s` : `${mins}m`) : `${secs}s`;
+      setTimeout(() => {
+        setTimerToast({
+          id: `toast_${endedAt}`,
+          durationText,
+          area: sessionArea,
+          category: sessionCategory,
+          timestamp: endedAt
+        });
+      }, 50);
+
       return {
         ...prev,
         activeDeepWork: null,
         deepWorkSessions: [newSession, ...prev.deepWorkSessions],
+        timeEntries: [newTimeEntry, ...(prev.timeEntries || [])],
+        missions: updatedMissions,
         completions: {
           ...prev.completions,
           [todayKey]: updatedCompletions
@@ -648,6 +686,20 @@ export const NourProvider: React.FC<{ children: React.ReactNode }> = ({ children
         lifetimeXP: prev.lifetimeXP + earnedXP
       };
     });
+  };
+
+  const saveWeeklyReview = (weekKey: string, wentWell: string, needsAttention: string) => {
+    setState(prev => ({
+      ...prev,
+      weeklyReviews: {
+        ...(prev.weeklyReviews || {}),
+        [weekKey]: {
+          wentWell,
+          needsAttention,
+          updatedAt: Date.now()
+        }
+      }
+    }));
   };
 
   const cancelDeepWork = () => {
@@ -733,39 +785,6 @@ export const NourProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  // Daily Check-In (Mood, Energy, Key Win)
-  const saveDailyCheckIn = (checkInData: { mood: MoodType; energyLevel: number; keyWin: string }) => {
-    setState(prev => {
-      const existing = prev.dayRecords[todayKey] || { date: todayKey, state: 'in_progress' as SmartDayState };
-      const hadExistingCheckIn = Boolean(existing.checkIn && existing.checkIn.keyWin);
-      const xpBonus = hadExistingCheckIn ? 0 : 25;
-
-      const newCheckIn: DailyCheckIn = {
-        mood: checkInData.mood,
-        energyLevel: checkInData.energyLevel,
-        keyWin: checkInData.keyWin.trim(),
-        loggedAt: Date.now()
-      };
-
-      const updatedRecord: DayRecord = {
-        ...existing,
-        checkIn: newCheckIn,
-        mood: checkInData.mood,
-        energyLevel: checkInData.energyLevel,
-        keyWin: checkInData.keyWin.trim()
-      };
-
-      return {
-        ...prev,
-        dayRecords: {
-          ...prev.dayRecords,
-          [todayKey]: updatedRecord
-        },
-        lifetimeXP: prev.lifetimeXP + xpBonus
-      };
-    });
-  };
-
   // Rewards
   const redeemReward = (rewardId: string): boolean => {
     const reward = state.rewards.find(r => r.id === rewardId);
@@ -832,6 +851,35 @@ export const NourProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
   };
 
+  // Time Tracking Actions
+  const addTimeEntry = (entryData: Omit<TimeEntry, 'id' | 'createdAt'>) => {
+    setState(prev => {
+      const newEntry: TimeEntry = {
+        ...entryData,
+        id: `time_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        createdAt: Date.now()
+      };
+      return {
+        ...prev,
+        timeEntries: [newEntry, ...(prev.timeEntries || [])]
+      };
+    });
+  };
+
+  const deleteTimeEntry = (id: string) => {
+    setState(prev => ({
+      ...prev,
+      timeEntries: (prev.timeEntries || []).filter(e => e.id !== id)
+    }));
+  };
+
+  const updateTimeEntry = (entry: TimeEntry) => {
+    setState(prev => ({
+      ...prev,
+      timeEntries: (prev.timeEntries || []).map(e => e.id === entry.id ? entry : e)
+    }));
+  };
+
   const saveUserSettings = (userUpdates: Partial<UserConfig>) => {
     setState(prev => ({
       ...prev,
@@ -843,93 +891,26 @@ export const NourProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetAllData = () => {
-    createLocalBackupSnapshot('pre_reset');
-    clearAllStorage();
     const fresh = generateDefaultState();
     setState(fresh);
     saveState(fresh);
-    if (currentUser) {
-      saveRemoteState(currentUser.uid, fresh).catch(console.error);
-    }
   };
 
   const exportJSON = () => {
-    return JSON.stringify({
-      _exportedAt: new Date().toISOString(),
-      _version: 2,
-      ...state
-    }, null, 2);
+    return JSON.stringify(state, null, 2);
   };
 
   const importJSON = (jsonStr: string): boolean => {
     try {
       const parsed = JSON.parse(jsonStr);
-      // Strip metadata if present
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { _exportedAt, _version, _updatedAt, _schemaVersion, ...cleanState } = parsed;
-      if (cleanState && cleanState.user && cleanState.habits) {
-        createLocalBackupSnapshot('pre_json_import');
-        setState(cleanState as NourOSState);
-        saveState(cleanState as NourOSState);
-        if (currentUser) {
-          saveRemoteState(currentUser.uid, cleanState as NourOSState).catch(console.error);
-        }
+      if (parsed && parsed.user && parsed.habits) {
+        setState(parsed);
+        saveState(parsed);
         return true;
       }
       return false;
     } catch {
       return false;
-    }
-  };
-
-  const restorePreMigrationBackup = (): boolean => {
-    const backup = getPreMigrationBackup();
-    if (!backup) return false;
-    setState(backup);
-    saveState(backup);
-    if (currentUser) {
-      saveRemoteState(currentUser.uid, backup).catch(console.error);
-    }
-    return true;
-  };
-
-  const signInWithCloud = async () => {
-    try {
-      setSyncStatus('syncing');
-      setSyncError(null);
-      await signInWithGoogle();
-    } catch (err: unknown) {
-      console.error('Sign-in failed:', err);
-      setSyncStatus('error');
-      const msg = err instanceof Error ? err.message : 'Sign in failed';
-      setSyncError(msg);
-      throw err;
-    }
-  };
-
-  const signOutCloud = async () => {
-    try {
-      await signOutUser();
-      setCurrentUser(null);
-      setSyncStatus('local_only');
-    } catch (err: unknown) {
-      console.error('Sign-out failed:', err);
-      throw err;
-    }
-  };
-
-  const forceCloudSync = async () => {
-    if (!currentUser) return;
-    setSyncStatus('syncing');
-    try {
-      await saveRemoteState(currentUser.uid, state);
-      setSyncStatus('synced');
-      setLastSyncedAt(new Date());
-      setSyncError(null);
-    } catch (err: unknown) {
-      setSyncStatus('error');
-      const msg = err instanceof Error ? err.message : 'Force sync failed';
-      setSyncError(msg);
     }
   };
 
@@ -948,17 +929,8 @@ export const NourProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setScreen,
         todayKey,
         dayNumber,
-        currentUser,
-        isAuthLoading,
-        isCloudSyncing,
-        syncStatus,
-        syncError,
-        lastSyncedAt,
-        signInWithCloud,
-        signOutCloud,
-        forceCloudSync,
-        restorePreMigrationBackup,
         todayMission,
+        completedMissions,
         saveTodayMission,
         setMissionStatus,
         todayCompletedHabitIds,
@@ -988,6 +960,13 @@ export const NourProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deleteReward,
         saveLearningItem,
         saveFinance,
+        timeEntries: state.timeEntries || [],
+        addTimeEntry,
+        deleteTimeEntry,
+        updateTimeEntry,
+        timerToast,
+        dismissTimerToast,
+        saveWeeklyReview,
         saveUserSettings,
         resetAllData,
         exportJSON,
@@ -995,9 +974,7 @@ export const NourProvider: React.FC<{ children: React.ReactNode }> = ({ children
         dismissOpening,
         smartDayState,
         mentorPrompt,
-        completionRatePercent,
-        todayCheckIn,
-        saveDailyCheckIn
+        completionRatePercent
       }}
     >
       {children}

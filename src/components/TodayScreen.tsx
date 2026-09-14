@@ -7,22 +7,20 @@ import {
   CheckCircle2, 
   Pause, 
   RotateCcw, 
-  Flame, 
   Clock, 
-  Sparkles, 
   ShieldAlert, 
-  Plus, 
   Edit3, 
-  ArrowRight,
-  Code,
-  Zap,
-  Target,
+  SlidersHorizontal,
   ChevronDown,
-  ChevronUp,
-  SlidersHorizontal
+  ChevronUp
 } from 'lucide-react';
-import { Habit } from '../types';
-import { DailyCheckInCard } from './DailyCheckInCard';
+import { ProgressTrendChart } from './ProgressTrendChart';
+import { TimeTrackingSection } from './TimeTrackingSection';
+import { JourneyIndicator } from './JourneyIndicator';
+import { TodaysFocusCard } from './TodaysFocusCard';
+import { ConsistencyCard } from './ConsistencyCard';
+import { DriftInsightCard } from './DriftInsightCard';
+import { WeeklyReviewCard } from './WeeklyReviewCard';
 
 export const TodayScreen: React.FC = () => {
   const { 
@@ -54,13 +52,10 @@ export const TodayScreen: React.FC = () => {
   const [isEditingMission, setIsEditingMission] = useState(false);
   const [missionInput, setMissionInput] = useState(todayMission?.title || '');
   const [missionCategory, setMissionCategory] = useState(todayMission?.category || 'software_dev');
-  const [activeDeepWorkFocus, setActiveDeepWorkFocus] = useState('High-Leverage Execution');
   const [expandedHabitId, setExpandedHabitId] = useState<string | null>(null);
 
-  // Active deep work state from context
   const activeDeepWork = state.activeDeepWork;
 
-  // Filter habits: if MVD active, only show isMinimumViable
   const displayedHabits = state.habits.filter(h => {
     if (!h.active) return false;
     if (isMinimumViableDayActive) return h.isMinimumViable;
@@ -80,7 +75,6 @@ export const TodayScreen: React.FC = () => {
     setIsEditingMission(true);
   };
 
-  // Format seconds to mm:ss or hh:mm:ss
   const formatTimer = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
@@ -95,47 +89,61 @@ export const TodayScreen: React.FC = () => {
   const deepWorkMins = todayDeepWorkMinutes % 60;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* 1. ORIENTATION HEADER & QUIET MENTOR */}
-      <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 border-b border-zinc-800/80 pb-4">
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 border-b border-black/[0.06] pb-4">
           <div>
-            <div className="text-xs font-mono tracking-widest text-zinc-400 uppercase">
-              Season 01 &bull; Day {dayNumber} of {state.user.totalSeasonDays}
+            <div className="text-[11px] font-medium tracking-tight text-[#86868b] uppercase">
+              Day {dayNumber} / {state.user.totalSeasonDays || 180} &bull; Month {Math.min(6, Math.ceil(dayNumber / 30))} / 6
             </div>
-            <h1 className="text-2xl sm:text-3xl font-serif-display font-semibold tracking-wide text-white mt-1">
-              {formatDateDisplay(todayKey)}
-            </h1>
+            <div className="flex items-baseline gap-3 mt-1">
+              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#1d1d1f]">
+                Hey, {state.user.name || 'Nour'} 👋
+              </h1>
+              <span className="text-xs text-[#86868b] font-medium hidden sm:inline">
+                &bull; {formatDateDisplay(todayKey)}
+              </span>
+            </div>
           </div>
 
-          {/* Quiet Mentor Guidance (State + Data + Action) */}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900/90 border border-zinc-800 rounded-full text-xs font-mono text-zinc-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-pulse" />
+          {/* Quiet Mentor Guidance */}
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-black/[0.035] border border-black/[0.05] rounded-full text-xs text-[#6e6e73] font-medium self-start sm:self-auto">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#1d1d1f] animate-pulse" />
             <span>{mentorPrompt}</span>
           </div>
         </div>
+
+        {/* 6-Month Transformation Journey Tracker */}
+        <JourneyIndicator />
+
+        {/* Smart Drift Detection Insights */}
+        <DriftInsightCard />
+
+        {/* Daily Command Center: Today's Focus & Start Next */}
+        <TodaysFocusCard />
       </div>
 
       {/* 2. THE #1 MISSION (VISUALLY DOMINANT) */}
       <section id="section-number-one-mission" className="relative group">
-        <div className="relative rounded-2xl bg-gradient-to-b from-zinc-900/90 to-zinc-950 border border-zinc-700/80 p-6 sm:p-8 subtle-glow">
+        <div className="apple-card p-6 sm:p-8 space-y-5">
           {/* Header pill & label */}
-          <div className="flex items-center justify-between gap-4 mb-4">
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded bg-zinc-100 text-zinc-950 font-mono text-[11px] font-bold tracking-widest uppercase">
+          <div className="flex items-center justify-between gap-4 border-b border-black/[0.06] pb-3.5">
+            <div className="flex items-center gap-2.5">
+              <span className="px-2.5 py-1 rounded-lg bg-[#1d1d1f] text-white text-[11px] font-semibold tracking-wider uppercase">
                 #1 MISSION
               </span>
-              <span className="text-xs font-mono text-zinc-400 uppercase tracking-wider hidden sm:inline">
+              <span className="text-xs text-[#86868b] font-medium hidden sm:inline">
                 Highest-Leverage Task
               </span>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono text-zinc-400">+150 XP</span>
+              <span className="text-xs font-tabular-nums text-[#86868b] font-medium">+150 XP</span>
               <button
                 id="edit-mission-toggle-btn"
                 onClick={handleOpenMissionEdit}
-                className="p-1.5 text-zinc-400 hover:text-white rounded hover:bg-zinc-800/70 transition-colors"
+                className="p-1.5 text-[#86868b] hover:text-[#1d1d1f] rounded-lg hover:bg-black/[0.04] transition-colors"
                 title="Edit #1 Mission"
               >
                 <Edit3 className="w-4 h-4" />
@@ -147,7 +155,7 @@ export const TodayScreen: React.FC = () => {
           {isEditingMission || !todayMission ? (
             <form onSubmit={handleSaveMissionSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-mono text-zinc-400 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-medium text-[#6e6e73] mb-1.5">
                   Define Today's Highest Leverage Objective
                 </label>
                 <input
@@ -157,17 +165,17 @@ export const TodayScreen: React.FC = () => {
                   onChange={(e) => setMissionInput(e.target.value)}
                   placeholder="e.g. Complete CS50 Memory Management lecture and problem set"
                   autoFocus
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-4 py-3 text-base text-white placeholder:text-zinc-600 focus:outline-none focus:border-zinc-400 transition-colors"
+                  className="w-full bg-black/[0.02] border border-black/[0.08] rounded-xl px-4 py-3 text-base text-[#1d1d1f] placeholder:text-[#86868b] focus:outline-none focus:border-black/30 focus:bg-white transition-colors"
                 />
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                <div className="flex items-center gap-2 text-xs font-mono text-zinc-400">
+                <div className="flex items-center gap-2 text-xs text-[#6e6e73]">
                   <span>Category:</span>
                   <select
                     value={missionCategory}
                     onChange={(e) => setMissionCategory(e.target.value as any)}
-                    className="bg-zinc-900 border border-zinc-700 text-zinc-200 rounded px-2.5 py-1 text-xs focus:outline-none"
+                    className="bg-black/[0.03] border border-black/[0.08] text-[#1d1d1f] rounded-lg px-2.5 py-1 text-xs focus:outline-none"
                   >
                     <option value="software_dev">Software Engineering</option>
                     <option value="cs_study">CS & Algorithms</option>
@@ -181,7 +189,7 @@ export const TodayScreen: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setIsEditingMission(false)}
-                      className="px-4 py-2 text-xs font-mono text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors"
+                      className="px-4 py-2 text-xs font-medium text-[#86868b] hover:text-[#1d1d1f] rounded-lg hover:bg-black/[0.04] transition-colors"
                     >
                       Cancel
                     </button>
@@ -189,7 +197,7 @@ export const TodayScreen: React.FC = () => {
                   <button
                     id="save-mission-btn"
                     type="submit"
-                    className="px-5 py-2 bg-zinc-100 hover:bg-white text-zinc-950 font-medium text-xs rounded-lg tracking-wide transition-all shadow"
+                    className="apple-button-primary px-5 py-2 text-xs font-medium"
                   >
                     Lock Mission
                   </button>
@@ -199,35 +207,35 @@ export const TodayScreen: React.FC = () => {
           ) : (
             <div className="space-y-6">
               <div>
-                <h2 className="text-xl sm:text-2xl font-medium tracking-tight text-white leading-snug">
+                <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-[#1d1d1f] leading-snug">
                   {todayMission.title}
                 </h2>
                 {todayMission.description && (
-                  <p className="text-sm text-zinc-400 mt-2 leading-relaxed">
+                  <p className="text-sm text-[#6e6e73] mt-2 leading-relaxed">
                     {todayMission.description}
                   </p>
                 )}
               </div>
 
               {/* Mission Actions */}
-              <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-zinc-800/80">
+              <div className="flex flex-wrap items-center justify-between gap-4 pt-3 border-t border-black/[0.06]">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono text-zinc-400 uppercase tracking-wider">Status:</span>
+                  <span className="text-xs text-[#86868b] font-medium">Status:</span>
                   {todayMission.status === 'completed' && (
-                    <span className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-950/40 text-emerald-300 border border-emerald-500/40 rounded-full text-xs font-mono">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                      COMPLETED
+                    <span className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-800 border border-emerald-500/20 rounded-full text-xs font-medium">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      Completed
                     </span>
                   )}
                   {todayMission.status === 'in_progress' && (
-                    <span className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-800 text-zinc-200 border border-zinc-600 rounded-full text-xs font-mono">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-                      IN PROGRESS
+                    <span className="flex items-center gap-1.5 px-3 py-1 bg-black/[0.05] text-[#1d1d1f] border border-black/[0.08] rounded-full text-xs font-medium">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      In Progress
                     </span>
                   )}
                   {todayMission.status === 'not_started' && (
-                    <span className="px-2.5 py-1 bg-zinc-900 text-zinc-400 border border-zinc-800 rounded-full text-xs font-mono">
-                      NOT STARTED
+                    <span className="px-3 py-1 bg-black/[0.03] text-[#86868b] border border-black/[0.06] rounded-full text-xs font-medium">
+                      Not Started
                     </span>
                   )}
                 </div>
@@ -241,21 +249,27 @@ export const TodayScreen: React.FC = () => {
                           onClick={() => {
                             setMissionStatus('in_progress');
                             if (!activeDeepWork?.isRunning) {
-                              startDeepWork(todayMission.title);
+                              const cat = todayMission.category === 'cs_study' ? 'CS50' : todayMission.category === 'ai_project' ? 'AI' : 'Software Engineering';
+                              startDeepWork({
+                                focusArea: todayMission.title,
+                                area: 'Learning',
+                                category: cat,
+                                missionId: todayMission.id
+                              });
                             }
                           }}
-                          className="flex items-center gap-2 px-5 py-2.5 bg-zinc-100 hover:bg-white text-zinc-950 rounded-xl font-medium text-xs tracking-wider uppercase transition-all shadow hover:shadow-lg"
+                          className="apple-button-primary flex items-center gap-2 px-5 py-2.5 text-xs font-medium"
                         >
-                          <Play className="w-3.5 h-3.5 fill-zinc-950" />
+                          <Play className="w-3.5 h-3.5 fill-white" />
                           <span>Start Mission</span>
                         </button>
                       ) : (
                         <button
                           id="in-progress-deepwork-btn"
                           onClick={() => setScreen('deep_work')}
-                          className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 rounded-xl text-xs font-mono transition-colors"
+                          className="apple-button-secondary flex items-center gap-2 px-4 py-2 text-xs font-medium"
                         >
-                          <Clock className="w-3.5 h-3.5 text-zinc-300" />
+                          <Clock className="w-3.5 h-3.5 text-[#1d1d1f]" />
                           <span>Deep Work Active</span>
                         </button>
                       )}
@@ -263,9 +277,9 @@ export const TodayScreen: React.FC = () => {
                       <button
                         id="complete-mission-btn"
                         onClick={() => setMissionStatus('completed')}
-                        className="flex items-center gap-1.5 px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 hover:border-zinc-500 rounded-xl text-xs font-medium tracking-wide transition-all"
+                        className="apple-button-secondary flex items-center gap-1.5 px-4 py-2 text-xs font-medium hover:text-emerald-700"
                       >
-                        <Check className="w-4 h-4 text-emerald-400" />
+                        <Check className="w-4 h-4 text-emerald-600" />
                         <span>Complete</span>
                       </button>
                     </>
@@ -273,7 +287,7 @@ export const TodayScreen: React.FC = () => {
                     <button
                       id="reopen-mission-btn"
                       onClick={() => setMissionStatus('in_progress')}
-                      className="text-xs font-mono text-zinc-400 hover:text-zinc-300 underline"
+                      className="text-xs text-[#86868b] hover:text-[#1d1d1f] underline font-medium"
                     >
                       Reopen Mission
                     </button>
@@ -285,138 +299,14 @@ export const TodayScreen: React.FC = () => {
         </div>
       </section>
 
-      {/* 3. ACTIVE DEEP WORK TIMER WIDGET (UNOBTRUSIVE FLOW) */}
-      <section id="section-deepwork-widget" className="rounded-2xl bg-zinc-900/40 border border-zinc-800/80 p-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-xl border ${activeDeepWork?.isRunning ? 'bg-zinc-800 border-zinc-600' : 'bg-zinc-900 border-zinc-800'}`}>
-              <Clock className={`w-5 h-5 ${activeDeepWork?.isRunning ? 'text-white' : 'text-zinc-500'}`} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-zinc-400 uppercase tracking-wider">
-                  Deep Work Engine
-                </span>
-                {activeDeepWork?.isRunning && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                )}
-              </div>
-              <div className="text-sm font-medium text-zinc-200 mt-0.5">
-                {activeDeepWork?.isRunning 
-                  ? activeDeepWork.focusArea 
-                  : `Today: ${deepWorkHours}h ${deepWorkMins}m uninterrupted`}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {activeDeepWork?.isRunning ? (
-              <div className="flex items-center gap-3">
-                <div className="font-mono text-lg font-bold text-white tracking-widest px-3 py-1 bg-zinc-950 border border-zinc-800 rounded-lg">
-                  {formatTimer(activeDeepWork.elapsedSeconds)}
-                </div>
-                {activeDeepWork.isPaused ? (
-                  <button
-                    id="resume-timer-btn"
-                    onClick={resumeDeepWork}
-                    className="p-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg border border-zinc-700 transition-colors"
-                    title="Resume Session"
-                  >
-                    <Play className="w-4 h-4 fill-white" />
-                  </button>
-                ) : (
-                  <button
-                    id="pause-timer-btn"
-                    onClick={pauseDeepWork}
-                    className="p-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg border border-zinc-700 transition-colors"
-                    title="Pause Session"
-                  >
-                    <Pause className="w-4 h-4" />
-                  </button>
-                )}
-                <button
-                  id="finish-timer-btn"
-                  onClick={() => finishDeepWork()}
-                  className="px-3.5 py-2 bg-zinc-100 hover:bg-white text-zinc-950 font-medium text-xs rounded-lg tracking-wide transition-all shadow"
-                >
-                  Finish Session
-                </button>
-              </div>
-            ) : (
-              <button
-                id="launch-deepwork-quick-btn"
-                onClick={() => setScreen('deep_work')}
-                className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl text-xs font-mono tracking-wide border border-zinc-700 hover:border-zinc-500 transition-all"
-              >
-                <Play className="w-3 h-3 fill-zinc-300" />
-                <span>Launch Deep Work</span>
-              </button>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* 4. TODAY'S PROGRESS & MINIMUM VIABLE DAY CONTROLS */}
-      <section id="section-progress-overview" className="space-y-3">
-        <div className="flex items-center justify-between text-xs font-mono">
-          <span className="text-zinc-400 uppercase tracking-wider">
-            {isMinimumViableDayActive ? 'Minimum Viable Progress' : "Today's Core Progress"}
-          </span>
-          <span className="text-white font-semibold">{completionRatePercent}%</span>
-        </div>
-
-        {/* Progress track */}
-        <div className="w-full h-2 rounded-full bg-zinc-900 overflow-hidden border border-zinc-800/80">
-          <div 
-            className="h-full bg-white transition-all duration-500 ease-out"
-            style={{ width: `${completionRatePercent}%` }}
-          />
-        </div>
-
-        {/* Action Toggles: Minimum Viable Day & Recovery */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+      {/* 3. CORE & KEYSTONE HABITS CHECKLIST */}
+      <section id="section-core-habits" className="apple-card p-6 sm:p-7 space-y-4">
+        <div className="flex items-center justify-between border-b border-black/[0.06] pb-3.5">
           <div className="flex items-center gap-2">
-            {isMinimumViableDayActive ? (
-              <button
-                id="disable-mvd-btn"
-                onClick={deactivateMinimumViableDay}
-                className="flex items-center gap-1.5 px-3 py-1 bg-amber-950/40 text-amber-300 border border-amber-500/40 rounded-full text-xs font-mono hover:bg-amber-900/40 transition-colors"
-              >
-                <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
-                <span>MVD Active &bull; Return to Full Day</span>
-              </button>
-            ) : (
-              <button
-                id="activate-mvd-btn"
-                onClick={activateMinimumViableDay}
-                className="text-xs font-mono text-zinc-400 hover:text-zinc-200 transition-colors flex items-center gap-1.5"
-                title="Reduces day to the highest-priority momentum preservers"
-              >
-                <ShieldAlert className="w-3.5 h-3.5 text-zinc-400" />
-                <span>Switch to Minimum Viable Day</span>
-              </button>
-            )}
-          </div>
-
-          <button
-            id="today-trigger-recovery-btn"
-            onClick={() => setScreen('recovery')}
-            className="text-xs font-mono text-zinc-400 hover:text-zinc-200 transition-colors flex items-center gap-1.5"
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-zinc-400" />
-            <span>Off track? Enter Recovery</span>
-          </button>
-        </div>
-      </section>
-
-      {/* 5. CORE & KEYSTONE HABITS CHECKLIST */}
-      <section id="section-core-habits" className="space-y-4">
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-mono tracking-widest text-zinc-300 uppercase">
+            <h3 className="text-sm font-semibold text-[#1d1d1f] tracking-tight">
               {isMinimumViableDayActive ? 'MVD Essential Actions' : 'Daily Keystone & Core Habits'}
             </h3>
-            <span className="text-xs font-mono text-zinc-400">
+            <span className="text-xs font-tabular-nums text-[#86868b]">
               ({todayCompletedHabitIds.length}/{displayedHabits.length})
             </span>
           </div>
@@ -424,15 +314,15 @@ export const TodayScreen: React.FC = () => {
           <button
             id="manage-habits-shortcut-btn"
             onClick={() => setScreen('habits')}
-            className="text-xs font-mono text-zinc-400 hover:text-white flex items-center gap-1 transition-colors"
+            className="text-xs font-medium text-[#6e6e73] hover:text-[#1d1d1f] flex items-center gap-1 transition-colors"
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span>Manage Habits</span>
+            <span>Manage</span>
           </button>
         </div>
 
         {/* Habits list */}
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           {displayedHabits.map((habit) => {
             const isCompleted = todayCompletedHabitIds.includes(habit.id);
             const currentVersion = todayCompletionVersions[habit.id] || 'full';
@@ -441,10 +331,10 @@ export const TodayScreen: React.FC = () => {
             return (
               <div
                 key={habit.id}
-                className={`group rounded-xl border transition-all duration-200 ${
+                className={`rounded-2xl border transition-all duration-200 ${
                   isCompleted 
-                    ? 'bg-zinc-950/40 border-zinc-800/60' 
-                    : 'bg-zinc-900/50 border-zinc-800 hover:border-zinc-700'
+                    ? 'bg-black/[0.015] border-black/[0.04]' 
+                    : 'bg-white border-black/[0.06] hover:border-black/[0.12] shadow-xs'
                 }`}
               >
                 <div className="flex items-center justify-between p-4 gap-4">
@@ -453,52 +343,72 @@ export const TodayScreen: React.FC = () => {
                     <button
                       id={`habit-check-${habit.id}`}
                       onClick={() => toggleHabit(habit.id, currentVersion)}
-                      className={`w-6 h-6 rounded-lg flex items-center justify-center border transition-all duration-200 focus:outline-none cursor-pointer shrink-0 ${
+                      className={`w-6 h-6 rounded-full flex items-center justify-center border transition-all duration-200 focus:outline-none cursor-pointer shrink-0 ${
                         isCompleted
-                          ? 'bg-white border-white text-zinc-950'
-                          : 'bg-zinc-950 border-zinc-700 group-hover:border-zinc-500'
+                          ? 'bg-[#1d1d1f] border-[#1d1d1f] text-white'
+                          : 'bg-white border-black/20 hover:border-black/50'
                       }`}
                       title={isCompleted ? 'Mark incomplete' : 'Mark completed'}
                     >
-                      {isCompleted && <Check className="w-4 h-4 stroke-[3]" />}
+                      {isCompleted && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
                     </button>
 
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className={`text-sm font-medium transition-colors ${
-                          isCompleted ? 'text-zinc-400 line-through' : 'text-zinc-100'
+                          isCompleted ? 'text-[#86868b] line-through' : 'text-[#1d1d1f]'
                         }`}>
                           {habit.name}
                         </span>
 
                         {habit.isKeystone && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono tracking-wider bg-zinc-800 text-zinc-300 border border-zinc-700">
-                            KEYSTONE
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-black/[0.05] text-[#1d1d1f]">
+                            Keystone
                           </span>
                         )}
 
                         {isCompleted && currentVersion === 'minimum' && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-amber-950/40 text-amber-300 border border-amber-500/30">
-                            MIN VERSION
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/10 text-amber-800">
+                            Min
                           </span>
                         )}
                       </div>
 
-                      <p className="text-xs text-zinc-400 truncate mt-0.5">
+                      <p className="text-xs text-[#86868b] truncate mt-0.5">
                         {currentVersion === 'minimum' ? habit.minimumVersion : habit.fullVersion || habit.description}
                       </p>
                     </div>
                   </div>
 
-                  {/* Right: XP & Expand details toggle */}
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-xs font-mono text-zinc-400">
+                  {/* Right: Timer Quick-Launch, XP & Expand details toggle */}
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    {!isCompleted && !activeDeepWork?.isRunning && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const area = habit.category === 'health' ? 'Fitness' : habit.category === 'engineering' ? 'Learning' : 'Personal';
+                          const cat = habit.category === 'health' ? 'Workout' : habit.category === 'engineering' ? 'Software Engineering' : habit.category === 'mind' ? 'Reading' : 'Habit';
+                          startDeepWork({
+                            focusArea: habit.name,
+                            area,
+                            category: cat,
+                            habitId: habit.id
+                          });
+                        }}
+                        className="p-1.5 text-[#86868b] hover:text-[#1d1d1f] hover:bg-black/[0.04] rounded-lg transition-colors"
+                        title={`Start timer for ${habit.name}`}
+                      >
+                        <Clock className="w-4 h-4" />
+                      </button>
+                    )}
+
+                    <span className="text-xs font-tabular-nums text-[#86868b]">
                       +{currentVersion === 'minimum' ? Math.round(habit.xp * 0.6) : habit.xp} XP
                     </span>
 
                     <button
                       onClick={() => setExpandedHabitId(isExpanded ? null : habit.id)}
-                      className="p-1 text-zinc-400 hover:text-zinc-300 transition-colors"
+                      className="p-1 text-[#86868b] hover:text-[#1d1d1f] transition-colors"
                       title="Toggle version and details"
                     >
                       {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -508,10 +418,10 @@ export const TodayScreen: React.FC = () => {
 
                 {/* Expanded Drawer: choose Full vs Minimum version */}
                 {isExpanded && (
-                  <div className="px-4 pb-4 pt-1 border-t border-zinc-800/60 mt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono text-zinc-400">
+                  <div className="px-4 pb-4 pt-2 border-t border-black/[0.05] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[#6e6e73]">
                     <div className="space-y-1">
-                      <div><span className="text-zinc-300 font-semibold">Full:</span> {habit.fullVersion}</div>
-                      <div><span className="text-zinc-300 font-semibold">Min (MVD):</span> {habit.minimumVersion}</div>
+                      <div><strong className="text-[#1d1d1f]">Full:</strong> {habit.fullVersion}</div>
+                      <div><strong className="text-[#1d1d1f]">Min (MVD):</strong> {habit.minimumVersion}</div>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -524,13 +434,13 @@ export const TodayScreen: React.FC = () => {
                             toggleHabit(habit.id, 'minimum');
                           }
                         }}
-                        className={`px-2.5 py-1 rounded text-[11px] border transition-colors ${
+                        className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors ${
                           isCompleted && currentVersion === 'minimum'
-                            ? 'bg-zinc-800 text-white border-zinc-600'
-                            : 'text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                            ? 'bg-black text-white border-black'
+                            : 'text-[#6e6e73] border-black/[0.1] hover:border-black/30'
                         }`}
                       >
-                        Use Min Version
+                        Use Min
                       </button>
 
                       <button
@@ -542,13 +452,13 @@ export const TodayScreen: React.FC = () => {
                             toggleHabit(habit.id, 'full');
                           }
                         }}
-                        className={`px-2.5 py-1 rounded text-[11px] border transition-colors ${
+                        className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors ${
                           isCompleted && currentVersion === 'full'
-                            ? 'bg-zinc-800 text-white border-zinc-600'
-                            : 'text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                            ? 'bg-black text-white border-black'
+                            : 'text-[#6e6e73] border-black/[0.1] hover:border-black/30'
                         }`}
                       >
-                        Use Full Version
+                        Use Full
                       </button>
                     </div>
                   </div>
@@ -559,39 +469,54 @@ export const TodayScreen: React.FC = () => {
         </div>
       </section>
 
-      {/* 6. DAILY CHECK-IN (MOOD, ENERGY LEVEL, KEY WIN) */}
-      <DailyCheckInCard />
+      {/* 4. TODAY'S PROGRESS & CONSISTENCY */}
+      <section id="section-progress-overview" className="space-y-3">
+        <ConsistencyCard />
 
-      {/* 7. STATUS STRIP (XP, STREAK, DEEP WORK, COMPOSITE) */}
-      <section id="section-status-strip" className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-zinc-800/80">
-        <div className="p-4 rounded-xl bg-zinc-900/30 border border-zinc-800/70">
-          <div className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">Level & Bank</div>
-          <div className="text-lg font-bold text-white mt-1 font-mono">
-            LVL {currentLevel} <span className="text-xs font-normal text-zinc-400 font-sans">({availableXP} XP)</span>
+        {/* Action Toggles: Minimum Viable Day & Recovery */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+          <div className="flex items-center gap-2">
+            {isMinimumViableDayActive ? (
+              <button
+                id="disable-mvd-btn"
+                onClick={deactivateMinimumViableDay}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 text-amber-900 border border-amber-500/20 rounded-full text-xs font-medium hover:bg-amber-500/20 transition-colors"
+              >
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+                <span>MVD Active &bull; Return to Full Day</span>
+              </button>
+            ) : (
+              <button
+                id="activate-mvd-btn"
+                onClick={activateMinimumViableDay}
+                className="text-xs text-[#86868b] hover:text-[#1d1d1f] font-medium transition-colors flex items-center gap-1.5"
+                title="Reduces day to the highest-priority momentum preservers"
+              >
+                <ShieldAlert className="w-3.5 h-3.5 text-[#86868b]" />
+                <span>Switch to Minimum Viable Day</span>
+              </button>
+            )}
           </div>
-        </div>
 
-        <div className="p-4 rounded-xl bg-zinc-900/30 border border-zinc-800/70">
-          <div className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">Deep Work Today</div>
-          <div className="text-lg font-bold text-white mt-1 font-mono">
-            {deepWorkHours}h {deepWorkMins}m
-          </div>
-        </div>
-
-        <div className="p-4 rounded-xl bg-zinc-900/30 border border-zinc-800/70">
-          <div className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">Weekly Deep Work</div>
-          <div className="text-lg font-bold text-white mt-1 font-mono">
-            {weeklyDeepWorkHours}h
-          </div>
-        </div>
-
-        <div className="p-4 rounded-xl bg-zinc-900/30 border border-zinc-800/70">
-          <div className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">Discipline Focus</div>
-          <div className="text-lg font-bold text-zinc-200 mt-1 font-mono">
-            Clean Flow
-          </div>
+          <button
+            id="today-trigger-recovery-btn"
+            onClick={() => setScreen('recovery')}
+            className="text-xs text-[#86868b] hover:text-[#1d1d1f] font-medium transition-colors flex items-center gap-1.5"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-[#86868b]" />
+            <span>Off track? Enter Recovery Protocol</span>
+          </button>
         </div>
       </section>
+
+      {/* 5. PROGRESS OVERVIEW & MARKET-STYLE TREND CHART */}
+      <ProgressTrendChart />
+
+      {/* 6. TIME INVESTED & TIME ANALYTICS */}
+      <TimeTrackingSection />
+
+      {/* 7. WEEKLY REVIEW & REFLECTION */}
+      <WeeklyReviewCard />
     </div>
   );
 };
