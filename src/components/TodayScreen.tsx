@@ -20,6 +20,7 @@ import { JourneyIndicator } from './JourneyIndicator';
 import { TodaysFocusCard } from './TodaysFocusCard';
 import { ConsistencyCard } from './ConsistencyCard';
 import { DriftInsightCard } from './DriftInsightCard';
+import { DailyCheckInCard } from './DailyCheckInCard';
 import { WeeklyReviewCard } from './WeeklyReviewCard';
 
 export const TodayScreen: React.FC = () => {
@@ -515,7 +516,10 @@ export const TodayScreen: React.FC = () => {
       {/* 6. TIME INVESTED & TIME ANALYTICS */}
       <TimeTrackingSection />
 
-      {/* 7. WEEKLY REVIEW & REFLECTION */}
+      {/* 7. DAILY CHECK-IN & MINDSET WIN */}
+      <DailyCheckInCard />
+
+      {/* 8. WEEKLY REVIEW & REFLECTION */}
       <WeeklyReviewCard />
     </div>
   );

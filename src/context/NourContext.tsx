@@ -13,7 +13,8 @@ import {
   RecoveryEvent,
   TimeEntry,
   TimeArea,
-  TimerRecordedToast
+  TimerRecordedToast,
+  DailyCheckIn
 } from '../types';
 import { loadState, saveState, getTodayKey, generateDefaultState, getDayNumberInSeason } from '../utils/defaults';
 
@@ -85,6 +86,10 @@ interface NourContextType {
   timerToast: TimerRecordedToast | null;
   dismissTimerToast: () => void;
   saveWeeklyReview: (weekKey: string, wentWell: string, needsAttention: string) => void;
+
+  // Daily Check-In
+  todayCheckIn: DailyCheckIn | undefined;
+  saveDailyCheckIn: (checkIn: Omit<DailyCheckIn, 'loggedAt'> & { loggedAt?: number }) => void;
 
   // State & Settings
   saveUserSettings: (user: Partial<UserConfig>) => void;
@@ -702,6 +707,41 @@ export const NourProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
   };
 
+  const todayCheckIn = useMemo<DailyCheckIn | undefined>(() => {
+    const record = state.dayRecords[todayKey];
+    if (record?.checkIn) {
+      return record.checkIn;
+    }
+    if (record?.mood || record?.energyLevel || record?.keyWin) {
+      return {
+        mood: record.mood || 'good',
+        energyLevel: record.energyLevel ?? 3,
+        keyWin: record.keyWin || ''
+      };
+    }
+    return undefined;
+  }, [state.dayRecords, todayKey]);
+
+  const saveDailyCheckIn = (checkIn: Omit<DailyCheckIn, 'loggedAt'> & { loggedAt?: number }) => {
+    const fullCheckIn: DailyCheckIn = {
+      ...checkIn,
+      loggedAt: checkIn.loggedAt || Date.now()
+    };
+    setState(prev => ({
+      ...prev,
+      dayRecords: {
+        ...prev.dayRecords,
+        [todayKey]: {
+          ...(prev.dayRecords[todayKey] || { date: todayKey, state: 'in_progress' }),
+          checkIn: fullCheckIn,
+          mood: fullCheckIn.mood,
+          energyLevel: fullCheckIn.energyLevel,
+          keyWin: fullCheckIn.keyWin
+        }
+      }
+    }));
+  };
+
   const cancelDeepWork = () => {
     setState(prev => ({
       ...prev,
@@ -967,6 +1007,8 @@ export const NourProvider: React.FC<{ children: React.ReactNode }> = ({ children
         timerToast,
         dismissTimerToast,
         saveWeeklyReview,
+        todayCheckIn,
+        saveDailyCheckIn,
         saveUserSettings,
         resetAllData,
         exportJSON,

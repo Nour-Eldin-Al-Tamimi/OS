@@ -5,6 +5,7 @@ import {
   CheckCircle2, 
   Target
 } from 'lucide-react';
+import { SeasonAnalyticsChart } from './SeasonAnalyticsChart';
 
 export const ProgressScreen: React.FC = () => {
   const { state, dayNumber, weeklyDeepWorkHours, completedMissions } = useNour();
@@ -211,6 +212,20 @@ export const ProgressScreen: React.FC = () => {
           <span>Execution Over Perfection</span>
         </div>
       </div>
+
+      {/* Season XP Velocity & Trajectory Chart */}
+      <SeasonAnalyticsChart 
+        startDateStr={state.user.startDate}
+        currentDay={dayNumber}
+        totalSeasonDays={totalDaysInSeason}
+        allSessions={state.deepWorkSessions}
+        missions={state.missions}
+        completions={state.completions}
+        completionVersions={state.completionVersions}
+        habits={state.habits}
+        dayRecords={state.dayRecords}
+        lifetimeXP={state.lifetimeXP}
+      />
 
       {/* Accomplished Missions History */}
       <div className="space-y-3.5">
